@@ -1,3 +1,6 @@
+"""
+docstring
+"""
 # imports
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,6 +10,9 @@ import stims
 h.load_file("stdrun.hoc")
 
 class Cell():
+	"""
+	docstring
+	"""
 	def __init__(self):
 		#=============================================================================
 		# Parameters from Migliore 2005 (signal propogation in oblique dendrites)
@@ -44,8 +50,6 @@ class Cell():
 		#==============================================================================
 		#%% soma
 		#==============================================================================
-
-		
 		# soma biophysics Hodgkin Huxley
 		self.soma.insert('hh')
 		self.soma.gnabar_hh = 0.12		# Sodium conductance in S/cm2
@@ -256,6 +260,53 @@ class Cell():
 		        self.syn_a_tuft_nmda[a][cnt].tau1 = 1
 		        self.syn_a_tuft_nmda[a][cnt].tau2 = 50
 
+# activate a specified subset of synapses with NetStim/NetCon
+class Syn_act:
+	"""
+	docstring
+	"""
+	def __init__(self,subtree_ampa,subtree_nmda,sec_idx,seg_idx,w_ampa,w_nmda):
+		
+		# choose active segments
+		self.subtree_ampa  = subtree_ampa # neuronal subtree_ampa (soma, apical, basal, etc.)
+		self.subtree_nmda = subtree_nmda
+		self.sec_idx = sec_idx	# list of section indeces with active synapses
+		self.seg_idx = seg_idx	# nested list of active segment indices within each section, e.g [section][segment]
+		self.w_ampa = w_ampa	# maximum ampa conductance (microsiemens or micro-omhos)
+		self.w_nmda = w_nmda	# maximum ampa conductance (microsiemens or micro-omhos)
+		self.choose_syn_ampa = [self.subtree_ampa[a] for a in self.sec_idx]
+		self.choose_syn_nmda = [self.subtree_nmda[a] for a in self.sec_idx]
+		self.active = []
+
+		# default stim objects
+		self.warm_up = 50   # warm up time (ms)
+		self.pulse_freq = 100
+		self.burst_freq = 5
+		self.bursts = 1
+		self.pulses = 1
+		self.stim  = []
+		self.stim.append(h.NetStim())
+		self.stim[0].start = self.warm_up
+		self.stim[0].interval = 1000/self.pulse_freq
+		self.stim[0].noise  = 0 
+		self.stim[0].number = self.pulses
+		
+		self.nc_ampa = []
+		self.nc_nmda = []
+		# activate synapses
+		for a in range(len(self.choose_syn_ampa)):
+		    self.active.append([])
+		    self.nc_ampa.append([])
+		    self.nc_nmda.append([])
+		    for b in range(len(self.choose_syn_ampa[a])):
+		        if b in seg_idx[a]: # choose segments within each section
+		            self.active[a].append(1)
+	                self.nc_ampa[a].append( h.NetCon(self.stim[0],self.choose_syn_ampa[a][b],0,0,w_ampa)) 
+            	    self.nc_nmda[a].append( h.NetCon(self.stim[0],self.choose_syn_nmda[a][b],0,0,w_nmda))
+            	else:
+		            self.active[a].append(0)
+		            self.nc_ampa[a].append( h.NetCon(self.stim[0],self.choose_syn_nmda[a][b],0,0,0))
+		            self.nc_nmda[a].append( h.NetCon(self.stim[0],self.choose_syn_nmda[a][b],0,0,0))
 
 if __name__ == "__main__":
     pass
