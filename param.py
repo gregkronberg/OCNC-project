@@ -5,6 +5,7 @@ import numpy as np
 import cell 
 import stims
 
+
 sec_idx = [5,6,7]
 seg_idx = []
 for a in sec_idx:

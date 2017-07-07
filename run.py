@@ -75,7 +75,7 @@ def run():
 	# for vec in data:
 	# 	data[vec] = np.array(data[vec])
 
-def create_plot(data,name):
+def creates_plot(data,name):
     n_sec = len(p['plot_idx'])
 
     n = int(np.ceil(np.sqrt(n_sec)))
@@ -87,11 +87,12 @@ def create_plot(data,name):
     cols = np.arange(0, n, 1, dtype=int)
 
     for k, (i, j) in enumerate(it.product(rows, cols)):
-    	print(i, j)
-    	axh = "test-{:03d}".format(k)
-    	ax[axh] = fig.add_subplot(gs[i:i+1, j:j+1])
-    	ax[axh].text(0.05, 0.90, axh, transform=ax[axh].transAxes)
     	if k < n_sec:
+	    	print(i, j)
+	    	axh = "section-{:03d}".format(p['sec_idx'][k])
+	    	ax[axh] = fig.add_subplot(gs[i:i+1, j:j+1])
+	    	ax[axh].text(0.05, 0.90, axh, transform=ax[axh].transAxes)
+    	
     		for exp in range(len(data['t'])):
 	    		plot_color = data['field_color'][exp]
 		    	ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
