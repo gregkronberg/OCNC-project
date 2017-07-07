@@ -32,39 +32,48 @@ def run():
 	"""
 	global cell1, tuft_act, data
 	# create cell
+	cell1 = cell.Cell()
+	# activate synapses
+	tuft_act  = cell.Syn_act(cell1.syn_a_tuft_ampa,cell1.syn_a_tuft_nmda,p['sec_idx'],p['seg_idx'],p['w_ampa'],p['w_nmda'])
 	
 	# run time
 	h.dt = .025
 	h.tstop = 60
+
+	# setup recording vectors
+	t_rec = h.Vector()
+	t_rec.record(h._ref_t)
+	soma_rec = h.Vector()
+	soma_rec.record(cell1.soma(0.5)._ref_v)
+	dend_rec=[]
+	for sec_i,sec in enumerate(p['plot_idx']):
+		dend_rec.append(h.Vector())
+		dend_rec[sec_i].record(cell1.dend_a_tuft[sec](0)._ref_v)	
+	
 	# loop over dcs fields
 	cnt=-1
 	for f_i,f in enumerate(p['field']):
 		cnt +=1
-		cell1 = cell.Cell()
-		# activate synapses
-		tuft_act  = cell.Syn_act(cell1.syn_a_tuft_ampa,cell1.syn_a_tuft_nmda,p['sec_idx'],p['seg_idx'],p['w_ampa'],p['w_nmda'])
 		# insert extracellular field
 		stims.dcs(cell=0,field_angle=p['field_angle'],intensity=f)
-		# create data vectors
-		data['t'].append(h.Vector())
-		data['t'][cnt].record(h._ref_t)
-		data['soma'].append(h.Vector())
-		data['soma'][cnt].record(cell1.soma(0.5)._ref_v)
-		data['dend'].append([])
-		data['field'].append(f)
-		data['field_color'].append(p['field_color'][f_i])
-		# loop over dendritic sections that were stimulated
-		for sec_i,sec in enumerate(p['plot_idx']):
-			# add recording vector for each dendritic section
-			data['dend'][cnt].append(h.Vector())
-			data['dend'][cnt][sec_i].record(cell1.dend_a_tuft[sec](0)._ref_v)
-		for sec in h.allsec():
-			print sec(0.5).e_extracellular
+		
+		# run simulation
 		h.run()
 
-	# convert to numpy arrays
-	for vec in data:
-		data[vec] = np.array(data[vec])
+		# store data
+		data['t'].append(np.array(t_rec))
+		data['soma'].append(np.array(soma_rec))
+		data['dend'].append(np.array(dend_rec))
+		data['field'].append(f)
+		data['field_color'].append(p['field_color'][f_i])	
+	
+		for sec in h.allsec():
+			print sec(0.5).e_extracellular
+		
+
+	# # convert to numpy arrays
+	# for vec in data:
+	# 	data[vec] = np.array(data[vec])
 
 def create_plot(data,name):
     n_sec = len(p['plot_idx'])
