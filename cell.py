@@ -279,7 +279,7 @@ class Syn_act:
 		self.active = []
 
 		# default stim objects
-		self.warm_up = 50   # warm up time (ms)
+		self.warm_up = 30   # warm up time (ms)
 		self.pulse_freq = 100
 		self.burst_freq = 5
 		self.bursts = 1
