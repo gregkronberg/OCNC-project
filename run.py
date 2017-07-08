@@ -10,27 +10,29 @@ import cell
 import itertools as it
 import stims
 import pickle
-from param import params as p
+import param
 h.load_file("stdrun.hoc")
 
-# initialize data
-data = {'t':[],
-	'soma':[],
-	'dend':[],
-	'field':[],
-	'field_color':[]
-			}
+# initialize parameters
+p = param.exp1().params
 
 # run control
-def run():
+def run(p):
 	"""
-	docstring
-
-	each experiment appends each field in the data dictionary
-	data is organized as data['type of data'][experiments][sections][data vector]
-	details of each experiment can be accessed from data['params'][experiment number]
+	each experiment appends a list to the appropriate key in the data dictionary
+	data is organized as data['type of data'][experiments][sections][time series data vector]
+	details of each experiment are tracked via the data['detail'][experiment number], e.g. data['field'][2]
 	"""
 	global cell1, tuft_act, data
+
+	# initialize data
+	data = {'t':[],
+		'soma':[],
+		'dend':[],
+		'field':[],
+		'field_color':[],
+		'params':p
+			}
 	# create cell
 	cell1 = cell.Cell()
 	# activate synapses
@@ -89,61 +91,10 @@ def run():
 
 	output.close()
 
-# def interrupts():
-# 	START = 20 # ms, time of the first interrupt
-# 	INTERVAL = 0.5 # ms, interval between interrupts
-# 	NUM = 1  # how many interrupts to generate
-
-# 	# user specification of what happens in response to an interrupt
-# 	def userinthandler():
-# 		print "in the userinthandler"
-# 		print "replace this with what you want to happen when an interrupt occurs"
-# 		shapeplot.append(h.PlotShape())
-# 		shapeplot[cnt].variable('v')
-# 		shapeplot[cnt].exec_menu('Shape Plot')
-# 		shapeplot[cnt].scale(-65, -50)
-# 		shapeplot[cnt].flush()
-
-# 		#re-initialize cvode if a parameter has been changed
-# 		if h.cvode.active():
-# 			h.cvode.re_init()
-# 		else:
-# 			h.fcurrent()
-	
-# 	def inthandler(numtodo):
-# 		print "interrupt at t = ", h.t
-# 		if (numtodo>0):
-# 			numtodo -= 1
-# 			h.cvode.event(h.t + INTERVAL, inthandler(numtodo))
-# 			userinthandler()
-			
-# 			print "  next will be at ", t + INTERVAL
-	
-# 	def intinitializer():
-# 		numtodo = NUM # restore the number of interrupts to generate
-#   		if (numtodo>0):
-#   			numtodo -= 1
-#   			h.cvode.event(START, inthandler(numtodo))
-  			
-#   			print "the first interrupt will be at ", START
-#   		else:
-#   			print "no interrupts will be generated"
-  	
-
-  	
-# 	# interrupt control code below this point
-# 	# alter at your own risk
-
-# 	fih = h.FInitializeHandler(intinitializer())
-	
-	 # whatever the user wants to have happen
-		
-
-	# # convert to numpy arrays
-	# for vec in data:
-	# 	data[vec] = np.array(data[vec])
-
-def create_plot(data_file):
+def plot_sections(data_file):
+	"""
+	creates a single figure with subplots for each section to be recorded from
+	"""
 	pkl_file = open(data_file, 'rb')
 	
 	data = pickle.load(pkl_file)
@@ -158,7 +109,7 @@ def create_plot(data_file):
 	for k, (i, j) in enumerate(it.product(rows, cols)):
 		if k < n_sec:
 			print(i, j)
-			axh = "section-{:03d}".format(p['sec_idx'][k])
+			axh = "section-{:03d}".format(data['params']['sec_idx'][k])
 			ax[axh] = fig.add_subplot(gs[i:i+1, j:j+1])
 			ax[axh].text(0.05, 0.90, axh, transform=ax[axh].transAxes)
 			for exp in range(len(data['t'])):
@@ -166,29 +117,10 @@ def create_plot(data_file):
 				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
 				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['dend'][exp][k]),plot_color)
 
-	fig.savefig(p['experiment']+'.png', dpi=200)
+	fig.savefig(data['params']['experiment']+'.png', dpi=200)
 	plt.close(fig)
 
-
-    	# axes are listed here
-    # for sec_i,sec in enumerate(p['plot_idx']):
-    # 	# create the figure object
-    # 	fig.append(plt.figure()) 
-    # 	fpng.append('name'+'_section_'+str(sec)+'.png')
-    	
-    # 	fig[sec_i].savefig(fpng[sec_i], dpi=250)
-    # 	print("Figure {} saved.".format(fpng))
-    # 	# and finally do some clean up
-    # 	plt.show(fig[sec_i])
-
-
-
-
-    
-
+# procedures to be initialized if called as a script
 if __name__ =="__main__":
-	# run()
-	create_plot(None,None)
-# plt.plot(t_arr,soma_arr,'k')
-# plt.plot(t_arr,dend_arr)
-# plt.show(fig)
+	plot_sections(None,None)
+
