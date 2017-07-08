@@ -58,11 +58,17 @@ def run():
 		# insert extracellular field
 		stims.dcs(cell=0,field_angle=p['field_angle'],intensity=f)
 		
+		# shape plots
 		shapeplot.append(h.PlotShape())
 		shapeplot[cnt].variable('v')
+		h.fast_flush_list.append(shapeplot[cnt])
+		shapeplot[cnt].exec_menu('View = plot')
 		shapeplot[cnt].exec_menu('Shape Plot')
-		shapeplot[cnt].scale(-65, -50)
-		shapeplot[cnt].flush()
+		shapeplot[cnt].scale(-65, 10)
+		shapeplot[cnt].fastflush()
+
+		# pause simulation to view shape plot at specific time
+		# h.load_file('interrupts_shapeflush.hoc')
 		# run simulation
 		h.run()
 
@@ -82,6 +88,55 @@ def run():
 	pickle.dump(data, output)
 
 	output.close()
+
+# def interrupts():
+# 	START = 20 # ms, time of the first interrupt
+# 	INTERVAL = 0.5 # ms, interval between interrupts
+# 	NUM = 1  # how many interrupts to generate
+
+# 	# user specification of what happens in response to an interrupt
+# 	def userinthandler():
+# 		print "in the userinthandler"
+# 		print "replace this with what you want to happen when an interrupt occurs"
+# 		shapeplot.append(h.PlotShape())
+# 		shapeplot[cnt].variable('v')
+# 		shapeplot[cnt].exec_menu('Shape Plot')
+# 		shapeplot[cnt].scale(-65, -50)
+# 		shapeplot[cnt].flush()
+
+# 		#re-initialize cvode if a parameter has been changed
+# 		if h.cvode.active():
+# 			h.cvode.re_init()
+# 		else:
+# 			h.fcurrent()
+	
+# 	def inthandler(numtodo):
+# 		print "interrupt at t = ", h.t
+# 		if (numtodo>0):
+# 			numtodo -= 1
+# 			h.cvode.event(h.t + INTERVAL, inthandler(numtodo))
+# 			userinthandler()
+			
+# 			print "  next will be at ", t + INTERVAL
+	
+# 	def intinitializer():
+# 		numtodo = NUM # restore the number of interrupts to generate
+#   		if (numtodo>0):
+#   			numtodo -= 1
+#   			h.cvode.event(START, inthandler(numtodo))
+  			
+#   			print "the first interrupt will be at ", START
+#   		else:
+#   			print "no interrupts will be generated"
+  	
+
+  	
+# 	# interrupt control code below this point
+# 	# alter at your own risk
+
+# 	fih = h.FInitializeHandler(intinitializer())
+	
+	 # whatever the user wants to have happen
 		
 
 	# # convert to numpy arrays
