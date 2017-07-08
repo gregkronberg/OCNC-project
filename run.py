@@ -9,7 +9,7 @@ import matplotlib.gridspec as gridspec
 import cell 
 import itertools as it
 import stims
-import itertools as iter
+import pickle
 from param import params as p
 h.load_file("stdrun.hoc")
 
@@ -50,6 +50,7 @@ def run():
 		dend_rec.append(h.Vector())
 		dend_rec[sec_i].record(cell1.dend_a_tuft[sec](0)._ref_v)	
 	
+	shapeplot = []
 	# loop over dcs fields
 	cnt=-1
 	for f_i,f in enumerate(p['field']):
@@ -57,6 +58,11 @@ def run():
 		# insert extracellular field
 		stims.dcs(cell=0,field_angle=p['field_angle'],intensity=f)
 		
+		shapeplot.append(h.PlotShape())
+		shapeplot[cnt].variable('v')
+		shapeplot[cnt].exec_menu('Shape Plot')
+		shapeplot[cnt].scale(-65, -50)
+		shapeplot[cnt].flush()
 		# run simulation
 		h.run()
 
@@ -69,37 +75,44 @@ def run():
 	
 		for sec in h.allsec():
 			print sec(0.5).e_extracellular
+
+	# pickle data
+	output = open('data_'+p['experiment']+'_.pkl', 'wb')
+	# 
+	pickle.dump(data, output)
+
+	output.close()
 		
 
 	# # convert to numpy arrays
 	# for vec in data:
 	# 	data[vec] = np.array(data[vec])
 
-def creates_plot(data,name):
-    n_sec = len(p['plot_idx'])
+def create_plot(data_file):
+	pkl_file = open(data_file, 'rb')
+	
+	data = pickle.load(pkl_file)
+	
+	n_sec = len(p['plot_idx'])
+	n = int(np.ceil(np.sqrt(n_sec)))
+	fig = plt.figure(figsize=(10, 10))
+	gs = gridspec.GridSpec(n, n, wspace=0.10, hspace=0.05, left=0.1, right=0.95, bottom=0.1, top=0.95)
+	ax = {}
+	rows = np.arange(0, n, 1, dtype=int)
+	cols = np.arange(0, n, 1, dtype=int)
+	for k, (i, j) in enumerate(it.product(rows, cols)):
+		if k < n_sec:
+			print(i, j)
+			axh = "section-{:03d}".format(p['sec_idx'][k])
+			ax[axh] = fig.add_subplot(gs[i:i+1, j:j+1])
+			ax[axh].text(0.05, 0.90, axh, transform=ax[axh].transAxes)
+			for exp in range(len(data['t'])):
+				plot_color = data['field_color'][exp]
+				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
+				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['dend'][exp][k]),plot_color)
 
-    n = int(np.ceil(np.sqrt(n_sec)))
-    fig = plt.figure(figsize=(10, 10))
-    gs = gridspec.GridSpec(n, n, wspace=0.10, hspace=0.05, left=0.1, right=0.95, bottom=0.1, top=0.95)
-
-    ax = {}
-    rows = np.arange(0, n, 1, dtype=int)
-    cols = np.arange(0, n, 1, dtype=int)
-
-    for k, (i, j) in enumerate(it.product(rows, cols)):
-    	if k < n_sec:
-	    	print(i, j)
-	    	axh = "section-{:03d}".format(p['sec_idx'][k])
-	    	ax[axh] = fig.add_subplot(gs[i:i+1, j:j+1])
-	    	ax[axh].text(0.05, 0.90, axh, transform=ax[axh].transAxes)
-    	
-    		for exp in range(len(data['t'])):
-	    		plot_color = data['field_color'][exp]
-		    	ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
-		    	ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['dend'][exp][k]),plot_color)
-
-    fig.savefig('testing.png', dpi=200)
-    plt.close(fig)
+	fig.savefig(p['experiment']+'.png', dpi=200)
+	plt.close(fig)
 
 
     	# axes are listed here

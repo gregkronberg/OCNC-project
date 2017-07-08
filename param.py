@@ -11,6 +11,7 @@ seg_idx = []
 for a in sec_idx:
 	seg_idx.append([-1])
 params = {
+	'experiment':'exp1',
 	'w_ampa':5*.00018, # ampa weight (microsiemens or micro-ohms)
 	'w_nmda':5*.00018, # nmda weight (microsiemens or micro-ohms)
 	'sec_idx': sec_idx,
