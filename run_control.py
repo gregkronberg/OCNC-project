@@ -19,8 +19,8 @@ def exp_2(num_secs,trials,weights):
 	for tri in range(trials):
 		for secs in num_secs:
 			for w in weights:
-				p = param.exp_2(secs).params
-				print 'sections:' + p['sec_idx']
+				p = param.exp_2(num_sec=secs).params
+				print p['sec_idx']
 				p['trial']=tri
 				p['w_ampa']=w*p['w_ampa']
 				p['w_nmda']=w*p['w_nmda']
@@ -29,4 +29,4 @@ def exp_2(num_secs,trials,weights):
 		+'.pkl')
 
 if __name__ =="__main__":
-	exp_2(num_secs=range(20),trials=3,weights = range(1,10,2))
+	exp_2(num_secs=range(1,20,1),trials=3,weights = range(1,10,2))
