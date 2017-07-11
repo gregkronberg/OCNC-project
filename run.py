@@ -101,7 +101,8 @@ def run(p):
 		# 	print sec(0.5).e_extracellular
 
 	# save data
-	with open('data_'+p['experiment']+'_trial_'+str(p['trial'])+'.pkl', 'wb') as output:
+	with open('data_'+p['experiment']+'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])
+		+'.pkl', 'wb') as output:
 	# 
 		pickle.dump(data, output,protocol=pickle.HIGHEST_PROTOCOL)
 
