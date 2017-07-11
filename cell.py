@@ -288,25 +288,36 @@ class Syn_act:
 		self.stim.append(h.NetStim())
 		self.stim[0].start = self.warm_up
 		self.stim[0].interval = 1000/self.pulse_freq
-		self.stim[0].noise  = 0 
+		self.stim[0].noise  = 0.
 		self.stim[0].number = self.pulses
 		
 		self.nc_ampa = []
 		self.nc_nmda = []
+
 		# activate synapses
 		for a in range(len(self.choose_syn_ampa)):
-		    self.active.append([])
-		    self.nc_ampa.append([])
-		    self.nc_nmda.append([])
-		    for b in range(len(self.choose_syn_ampa[a])):
-		        if b in seg_idx[a]: # choose segments within each section
-		            self.active[a].append(1)
-	                self.nc_ampa[a].append( h.NetCon(self.stim[0],self.choose_syn_ampa[a][b],0,0,w_ampa)) 
-            	    self.nc_nmda[a].append( h.NetCon(self.stim[0],self.choose_syn_nmda[a][b],0,0,w_nmda))
-            	else:
-		            self.active[a].append(0)
-		            self.nc_ampa[a].append( h.NetCon(self.stim[0],self.choose_syn_nmda[a][b],0,0,0))
-		            self.nc_nmda[a].append( h.NetCon(self.stim[0],self.choose_syn_nmda[a][b],0,0,0))
+			print w_ampa
+			print seg_idx[a]
+			self.active.append([])
+			self.nc_ampa.append([])
+			self.nc_nmda.append([])
+			for b in range(len(self.choose_syn_ampa[a])):
+				print b
+				if b not in seg_idx[a]:
+					self.active[a].append(0)
+					self.nc_ampa[a].append( h.NetCon(self.stim[0],self.choose_syn_nmda[a][b],0,0,0))
+					self.nc_nmda[a].append( h.NetCon(self.stim[0],self.choose_syn_nmda[a][b],0,0,0))
+
+				if b in seg_idx[a]: # choose segments within each section
+					self.active[a].append(1)
+					self.nc_ampa[a].append( h.NetCon(self.stim[0],self.choose_syn_ampa[a][b],0,0,w_ampa))
+					self.nc_nmda[a].append( h.NetCon(self.stim[0],self.choose_syn_nmda[a][b],0,0,w_nmda))
+            		print self.nc_ampa[a][b].weight
+            	# else:
+            	# 	print a
+		            # self.active[a].append(0)
+		    #         self.nc_ampa[a].append( h.NetCon(self.stim[0],self.choose_syn_nmda[a][b],0,0,0))
+		    #         self.nc_nmda[a].append( h.NetCon(self.stim[0],self.choose_syn_nmda[a][b],0,0,0))
 
 if __name__ == "__main__":
     pass
