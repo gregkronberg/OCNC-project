@@ -35,7 +35,6 @@ def run(p):
 			}
 	# create cell
 	cell1 = cell.Cell()
-	print p['w_ampa']
 	# activate synapses
 	tuft_act  = cell.Syn_act(cell1.syn_a_tuft_ampa,cell1.syn_a_tuft_nmda,p['sec_idx'],p['seg_idx'],p['w_ampa'],p['w_nmda'])
 
@@ -117,7 +116,6 @@ def plot_sections(data_file):
 	pkl_file = open(data_file, 'rb')
 	
 	data = pickle.load(pkl_file)
-	print data['params']['sec_idx']
 	
 	n_sec = len(data['params']['plot_idx'])+1
 	n = int(np.ceil(np.sqrt(n_sec)))
@@ -128,7 +126,6 @@ def plot_sections(data_file):
 	cols = np.arange(0, n, 1, dtype=int)
 	for k, (i, j) in enumerate(it.product(rows, cols)):
 		if k < n_sec-1:
-			print(i, j)
 			axh = "section-{:03d}".format(data['params']['sec_idx'][k])
 			ax[axh] = fig.add_subplot(gs[i:i+1, j:j+1])
 			ax[axh].text(0.05, 0.90, axh, transform=ax[axh].transAxes)
@@ -137,7 +134,6 @@ def plot_sections(data_file):
 				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
 				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['dend'][exp][k]),plot_color)
 		elif k==n_sec-1:
-			print(i, j)
 			axh = "section-{}".format('soma')
 			ax[axh] = fig.add_subplot(gs[i:i+1, j:j+1])
 			ax[axh].text(0.05, 0.90, axh, transform=ax[axh].transAxes)

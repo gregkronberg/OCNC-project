@@ -296,13 +296,10 @@ class Syn_act:
 
 		# activate synapses
 		for a in range(len(self.choose_syn_ampa)):
-			print w_ampa
-			print seg_idx[a]
 			self.active.append([])
 			self.nc_ampa.append([])
 			self.nc_nmda.append([])
 			for b in range(len(self.choose_syn_ampa[a])):
-				print b
 				if b not in seg_idx[a]:
 					self.active[a].append(0)
 					self.nc_ampa[a].append( h.NetCon(self.stim[0],self.choose_syn_nmda[a][b],0,0,0))
@@ -312,7 +309,6 @@ class Syn_act:
 					self.active[a].append(1)
 					self.nc_ampa[a].append( h.NetCon(self.stim[0],self.choose_syn_ampa[a][b],0,0,w_ampa))
 					self.nc_nmda[a].append( h.NetCon(self.stim[0],self.choose_syn_nmda[a][b],0,0,w_nmda))
-            		print self.nc_ampa[a][b].weight
             	# else:
             	# 	print a
 		            # self.active[a].append(0)
