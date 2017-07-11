@@ -3,6 +3,7 @@
 *.o
 *.pkl
 *.png
+*.eps
 
 # Windows image file caches
 Thumbs.db
