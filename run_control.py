@@ -25,8 +25,8 @@ def exp_2(num_secs,trials,weights):
 				p['w_ampa']=w*p['w_ampa']
 				p['w_nmda']=w*p['w_nmda']
 				run.run(p)
-				run.plot_sections('data_'+p['experiment']+'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])
-		+'.pkl')
+				run.plot_sections('data_'+p['experiment']+'_syn_'+str(len(p['sec_idx']))+
+					'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])+'.pkl')
 
 if __name__ =="__main__":
-	exp_2(num_secs=range(1,20,1),trials=3,weights = range(1,10,2))
+	exp_2(num_secs=range(1,20,1),trials=3,weights = range(1,50,4))

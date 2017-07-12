@@ -14,7 +14,7 @@ import param
 h.load_file("stdrun.hoc")
 
 # initialize parameters
-# p = param.exp_2(2).params
+p = param.exp_2(10).params
 
 # run control
 def run(p):
@@ -101,10 +101,10 @@ def run(p):
 		# 	print sec(0.5).e_extracellular
 
 	# save data
-	with open('data_'+p['experiment']+'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])
-		+'.pkl', 'wb') as output:
-	# 
-		pickle.dump(data, output,protocol=pickle.HIGHEST_PROTOCOL)
+	# with open('data_'+p['experiment']+'_syn_'+str(len(p['sec_idx']))+'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])
+	# 	+'.pkl', 'wb') as output:
+	# # 
+	# 	pickle.dump(data, output,protocol=pickle.HIGHEST_PROTOCOL)
 
 	# save shape plot
 	# pwm = h.PWManager()
@@ -143,7 +143,9 @@ def plot_sections(data_file):
 				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
 				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['dend'][exp][k]),plot_color)
 
-	fig.savefig(data['params']['experiment']+'_trial_'+str(data['params']['trial'])+'.png', dpi=200)
+	fig.savefig(data['params']['experiment']+'_syn_'+str(len(data['params']['sec_idx']))+
+		'_trial_'+str(data['params']['trial'])+
+		'_weight_'+str(data['params']['w_ampa'])+'.png', dpi=250)
 	plt.close(fig)
 
 # procedures to be initialized if called as a script
