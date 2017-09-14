@@ -79,7 +79,7 @@ def run(p):
 	weight_rec=[]
 	for sec_i,sec in enumerate(p['plot_idx']):
 		weight_rec.append(h.Vector())
-		weight_rec[sec_i].record(cell1.syn_a_tuft_clopath[sec][0].gbar)
+		weight_rec[sec_i].record(cell1.syn_a_tuft_clopath[sec][0]._ref_gbar)
 	
 	# loop over dcs fields
 	cnt=-1
@@ -156,6 +156,7 @@ def plot_sections(data_file):
 			for exp in range(len(data['t'])):
 				plot_color = data['field_color'][exp]
 				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
+				# plot dendritic voltage
 				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['dend'][exp][k]),plot_color)
 		elif k==n_sec-1:
 			axh = "section-{}".format('soma')
@@ -163,7 +164,10 @@ def plot_sections(data_file):
 			ax[axh].text(0.05, 0.90, axh, transform=ax[axh].transAxes)
 			for exp in range(len(data['t'])):
 				plot_color = data['field_color'][exp]
-				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
+				# plot soma voltage
+				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
+				# plot weight changes
+				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['weight'][exp]),plot_color)
 				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['dend'][exp][k]),plot_color)
 
 	fig.savefig(plot_folder+data['params']['experiment']+'_syn_'+str(len(data['params']['sec_idx']))+

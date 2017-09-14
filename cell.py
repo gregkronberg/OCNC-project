@@ -371,7 +371,7 @@ class Syn_act:
 					self.active[a].append(1)
 					self.nc_ampa[a].append( h.NetCon(netstim,self.choose_syn_ampa[a][b],0,0,w_ampa))
 					self.nc_nmda[a].append( h.NetCon(netstim,self.choose_syn_nmda[a][b],0,0,w_nmda))
-					self.nc_clopath[a].append( h.NetCon(netstim,self.choose_syn_ampa[a][b],0,0,w_ampa))
+					self.nc_clopath[a].append( h.NetCon(netstim,self.choose_syn_clopath[a][b],0,0,w_ampa))
 
 if __name__ == "__main__":
     pass
