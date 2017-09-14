@@ -13,18 +13,17 @@ import pickle
 import param
 h.load_file("stdrun.hoc")
 
-# initialize parameters
-p = param.exp_2(10).params
-
 # run control
 def run(p):
 	"""
+	Arguments list:
+	p - dictionary of parameters
+
 	each experiment appends a list to the appropriate key in the data dictionary
 	data is organized as data['type of data'][experiments][sections][time series data vector]
 	details of each experiment are tracked via the data['detail'][experiment number], e.g. data['field'][2]
 	"""
-	# global cell1, tuft_act, data
-	# global shapeplot, sl
+
 	# initialize data
 	data = {'t':[],
 		'soma':[],
@@ -33,13 +32,19 @@ def run(p):
 		'field_color':[],
 		'params':p,
 			}
+
 	# create cell
-	cell1 = cell.Cell()
+	cell1 = cell.Cell_Migliore_2005()
+
+	# synaptic stimulation
+	syn_stim = stims.tbs().stim[0]
+
 	# activate synapses
-	tuft_act  = cell.Syn_act(cell1.syn_a_tuft_ampa,cell1.syn_a_tuft_nmda,p['sec_idx'],p['seg_idx'],p['w_ampa'],p['w_nmda'])
+	tuft_act  = cell.Syn_act(syn_stim,cell1.syn_a_tuft_ampa,cell1.syn_a_tuft_nmda,cell1.syn_a_tuft_clopath,p['sec_idx'],p['seg_idx'],p['w_ampa'],p['w_nmda'])
 
 	# highlight active sections
 	shapeplot = h.PlotShape()
+	
 	# create section list of active sections
 	sl = h.SectionList()    # secetion list of included sections
 	for section in p['sec_idx']:
@@ -50,21 +55,35 @@ def run(p):
 	
 	# run time
 	h.dt = .025
-	h.tstop = 60
+	h.tstop = 100
 
+	#======================================================================================
 	# setup recording vectors
+	#======================================================================================
+	# time
 	t_rec = h.Vector()
 	t_rec.record(h._ref_t)
+	
+	# soma voltage
 	soma_rec = h.Vector()
 	soma_rec.record(cell1.soma(0.5)._ref_v)
+	
+	# dendrite voltage (sections chosen with 'plot_idx' in parameter module)
 	dend_rec=[]
 	for sec_i,sec in enumerate(p['plot_idx']):
 		dend_rec.append(h.Vector())
-		dend_rec[sec_i].record(cell1.dend_a_tuft[sec](0)._ref_v)	
+		dend_rec[sec_i].record(cell1.dend_a_tuft[sec](0)._ref_v)
+
+	# clopath weight update
+	weight_rec=[]
+	for sec_i,sec in enumerate(p['plot_idx']):
+		weight_rec.append(h.Vector())
+		weight_rec[sec_i].record(cell1.dend_a_tuft[sec](0).STDPSynCCNon.gbar)
+		weight_rec
 	
-	shapeplot = []
 	# loop over dcs fields
 	cnt=-1
+	shapeplot = []
 	for f_i,f in enumerate(p['field']):
 		cnt +=1
 		# insert extracellular field
@@ -85,10 +104,9 @@ def run(p):
 
 		# pause simulation to view shape plot at specific time
 		# h.load_file('interrupts_shapeflush.hoc')
+		
 		# run simulation
 		h.run()
-
-		
 
 		# store data
 		data['t'].append(np.array(t_rec))
@@ -101,10 +119,11 @@ def run(p):
 		# 	print sec(0.5).e_extracellular
 
 	# save data
-	# with open('data_'+p['experiment']+'_syn_'+str(len(p['sec_idx']))+'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])
-	# 	+'.pkl', 'wb') as output:
-	# # 
-	# 	pickle.dump(data, output,protocol=pickle.HIGHEST_PROTOCOL)
+	data_folder = 'Data/'
+	with open(data_folder+'data_'+p['experiment']+'_syn_'+str(len(p['sec_idx']))+'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])
+		+'.pkl', 'wb') as output:
+	# 
+		pickle.dump(data, output,protocol=pickle.HIGHEST_PROTOCOL)
 
 	# save shape plot
 	# pwm = h.PWManager()
@@ -114,9 +133,12 @@ def plot_sections(data_file):
 	"""
 	creates a single figure with subplots for each section to be recorded from
 	"""
+	# open data
 	pkl_file = open(data_file, 'rb')
 	
 	data = pickle.load(pkl_file)
+
+	plot_folder = 'png figures/'
 	
 	n_sec = len(data['params']['plot_idx'])+1
 	n = int(np.ceil(np.sqrt(n_sec)))
@@ -143,7 +165,7 @@ def plot_sections(data_file):
 				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
 				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['dend'][exp][k]),plot_color)
 
-	fig.savefig(data['params']['experiment']+'_syn_'+str(len(data['params']['sec_idx']))+
+	fig.savefig(plot_folder+data['params']['experiment']+'_syn_'+str(len(data['params']['sec_idx']))+
 		'_trial_'+str(data['params']['trial'])+
 		'_weight_'+str(data['params']['w_ampa'])+'.png', dpi=250)
 	plt.close(fig)

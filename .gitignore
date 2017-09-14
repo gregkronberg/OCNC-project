@@ -4,6 +4,8 @@
 *.pkl
 *.png
 *.eps
+*.ppt
+*.dll
 
 # Windows image file caches
 Thumbs.db

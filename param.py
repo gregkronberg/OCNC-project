@@ -23,7 +23,8 @@ class exp_default:
 			'plot_idx':self.sec_idx,
 			'field_angle':0,
 			'field':[-20,0,20],
-			'field_color':['b','k','r']}
+			'field_color':['b','k','r'],
+			}
 
 class exp_1:
 	def __init__(self):
@@ -42,8 +43,8 @@ class exp_1:
 			'plot_idx':self.sec_idx,
 			'field_angle':0,
 			'field':[-20,0,20],
-			'field_color':['b','k','r']}
-
+			'field_color':['b','k','r'],
+			}
 
 class exp_2:
 	"""
@@ -66,5 +67,4 @@ class exp_2:
 			'field_angle':0,
 			'field':[-20,0,20],
 			'field_color':['b','k','r'],
-
 			}
