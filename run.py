@@ -28,6 +28,7 @@ def run(p):
 	data = {'t':[],
 		'soma':[],
 		'dend':[],
+		'weight':[],
 		'field':[],
 		'field_color':[],
 		'params':p,
@@ -78,8 +79,7 @@ def run(p):
 	weight_rec=[]
 	for sec_i,sec in enumerate(p['plot_idx']):
 		weight_rec.append(h.Vector())
-		weight_rec[sec_i].record(cell1.dend_a_tuft[sec](0).STDPSynCCNon.gbar)
-		weight_rec
+		weight_rec[sec_i].record(cell1.syn_a_tuft_clopath[sec][0].gbar)
 	
 	# loop over dcs fields
 	cnt=-1
@@ -112,6 +112,7 @@ def run(p):
 		data['t'].append(np.array(t_rec))
 		data['soma'].append(np.array(soma_rec))
 		data['dend'].append(np.array(dend_rec))
+		data['weight'].append(np.array(weight_rec))
 		data['field'].append(f)
 		data['field_color'].append(p['field_color'][f_i])	
 	
