@@ -73,6 +73,7 @@ STATE {
 }
 
 INITIAL {
+	gbar = .05
 	g=0
 	u_m1 = v 
 	u_m2 = v 

@@ -30,4 +30,4 @@ def exp_2(num_secs,trials,weights):
 					'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])+'.pkl')
 
 if __name__ =="__main__":
-	exp_2(num_secs=range(1,2,1),trials=1,weights = range(4,50,6))
+	exp_2(num_secs=range(1,2,1),trials=1,weights = range(40,50,6))
