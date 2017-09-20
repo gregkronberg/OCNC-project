@@ -20,7 +20,8 @@ class exp_default:
 			'w_nmda':3*.00018, # nmda weight (microsiemens or micro-ohms)
 			'sec_idx': self.sec_idx,
 			'seg_idx':self.seg_idx,
-			'plot_idx':self.sec_idx,
+			'plot_sec_idx':self.sec_idx,
+			'plot_seg_idx':self.seg_idx,
 			'field_angle':0,
 			'field':[-20,0,20],
 			'field_color':['b','k','r'],
@@ -40,7 +41,8 @@ class exp_1:
 			'w_nmda':4*.00018, # nmda weight (microsiemens or micro-ohms)
 			'sec_idx': self.sec_idx,
 			'seg_idx':self.seg_idx,
-			'plot_idx':self.sec_idx,
+			'plot_sec_idx':self.sec_idx,
+			'plot_seg_idx':self.seg_idx,
 			'field_angle':0,
 			'field':[-20,0,20],
 			'field_color':['b','k','r'],
@@ -63,8 +65,11 @@ class exp_2:
 			'w_nmda':.00018, # nmda weight (microsiemens or micro-ohms)
 			'sec_idx': self.sec_idx,
 			'seg_idx':self.seg_idx,
-			'plot_idx':self.sec_idx,
+			'plot_sec_idx':self.sec_idx,
+			'plot_seg_idx':self.seg_idx,
 			'field_angle':0,
 			'field':[-20,0,20],
 			'field_color':['b','k','r'],
+			'dt' : .025,
+			'tstop' : 100
 			}

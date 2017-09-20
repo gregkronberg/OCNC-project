@@ -38,10 +38,11 @@ def run(p):
 	cell1 = cell.Cell_Migliore_2005()
 
 	# synaptic stimulation
-	syn_stim = stims.tbs().stim[0]
+	tuft_act = []
+	for syn_stim_i,syn_stim in enumerate(stims.tbs(bursts=1).stim):
 
 	# activate synapses
-	tuft_act  = cell.Syn_act(syn_stim,cell1.syn_a_tuft_ampa,cell1.syn_a_tuft_nmda,cell1.syn_a_tuft_clopath,p['sec_idx'],p['seg_idx'],p['w_ampa'],p['w_nmda'])
+		tuft_act.append(cell.Syn_act(syn_stim,cell1.syn_a_tuft_ampa,cell1.syn_a_tuft_nmda,cell1.syn_a_tuft_clopath,p['sec_idx'],p['seg_idx'],p['w_ampa'],p['w_nmda']))
 
 	# highlight active sections
 	shapeplot = h.PlotShape()
@@ -55,8 +56,8 @@ def run(p):
 	# sl.printnames()
 	
 	# run time
-	h.dt = .025
-	h.tstop = 100
+	h.dt = p['dt']
+	h.tstop = p['tstop']
 
 	#======================================================================================
 	# setup recording vectors
@@ -71,15 +72,19 @@ def run(p):
 	
 	# dendrite voltage (sections chosen with 'plot_idx' in parameter module)
 	dend_rec=[]
-	for sec_i,sec in enumerate(p['plot_idx']):
-		dend_rec.append(h.Vector())
-		dend_rec[sec_i].record(cell1.dend_a_tuft[sec](0)._ref_v)
+	for sec_i,sec in enumerate(p['plot_sec_idx']):
+		for seg_i,seg in enumerate(p['plot_seg_idx'][sec_i]):
+			if seg <= cell1.dend_a_tuft[sec].nseg:
+				seg_loc = (seg+1)/(cell1.dend_a_tuft[sec].nseg+1)
+				dend_rec.append(h.Vector())
+				dend_rec[sec_i].record(cell1.dend_a_tuft[sec](seg_loc)._ref_v)
 
 	# clopath weight update
 	weight_rec=[]
-	for sec_i,sec in enumerate(p['plot_idx']):
-		weight_rec.append(h.Vector())
-		weight_rec[sec_i].record(cell1.syn_a_tuft_clopath[sec][0]._ref_gbar)
+	for sec_i,sec in enumerate(p['plot_sec_idx']):
+		for seg_i,seg in enumerate(p['plot_seg_idx'][sec_i]):
+			weight_rec.append(h.Vector())
+			weight_rec[sec_i].record(cell1.syn_a_tuft_clopath[sec][seg]._ref_gbar)
 	
 	# loop over dcs fields
 	cnt=-1
@@ -141,15 +146,15 @@ def plot_sections(data_file):
 
 	plot_folder = 'png figures/'
 	
-	n_sec = len(data['params']['plot_idx'])+1
-	n = int(np.ceil(np.sqrt(n_sec)))
+	n_seg = len(data['params']['plot_seg_idx'])+1
+	n = int(np.ceil(np.sqrt(n_seg)))
 	fig = plt.figure(figsize=(10, 10))
 	gs = gridspec.GridSpec(n, n, wspace=0.10, hspace=0.05, left=0.1, right=0.95, bottom=0.1, top=0.95)
 	ax = {}
 	rows = np.arange(0, n, 1, dtype=int)
 	cols = np.arange(0, n, 1, dtype=int)
 	for k, (i, j) in enumerate(it.product(rows, cols)):
-		if k < n_sec-1:
+		if k < n_seg-1:
 			axh = "section-{:03d}".format(data['params']['sec_idx'][k])
 			ax[axh] = fig.add_subplot(gs[i:i+1, j:j+1])
 			ax[axh].text(0.05, 0.90, axh, transform=ax[axh].transAxes)
@@ -158,7 +163,7 @@ def plot_sections(data_file):
 				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
 				# plot dendritic voltage
 				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['dend'][exp][k]),plot_color)
-		elif k==n_sec-1:
+		elif k==n_seg-1:
 			axh = "section-{}".format('soma')
 			ax[axh] = fig.add_subplot(gs[i:i+1, j:j+1])
 			ax[axh].text(0.05, 0.90, axh, transform=ax[axh].transAxes)
