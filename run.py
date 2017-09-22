@@ -80,7 +80,7 @@ def run(p):
 
 				# determine relative segment location in (0-1) 
 				seg_loc = (seg+1)/(cell1.dend_a_tuft[sec].nseg+1)
-				dend_rec.append(h.Vector())
+				dend_rec[sec_i].append(h.Vector())
 				dend_rec[sec_i][seg_i].record(cell1.dend_a_tuft[sec](seg_loc)._ref_v)
 
 	# clopath weight update
@@ -89,7 +89,7 @@ def run(p):
 		weight_rec.append([])
 		for seg_i,seg in enumerate(p['plot_seg_idx'][sec_i]):
 			if seg < len(cell1.syn_a_tuft_clopath[sec]):
-				weight_rec.append(h.Vector())
+				weight_rec[sec_i].append(h.Vector())
 				weight_rec[sec_i][seg_i].record(cell1.syn_a_tuft_clopath[sec][seg]._ref_gbar)
 	
 	# loop over dcs fields
@@ -132,13 +132,20 @@ def plot_sections(data_file):
 
 	plot_folder = 'png figures/'
 	
+	# number of segments to plot
 	n_seg = len(data['params']['plot_seg_idx'])+1
+	# number of elements n in each dimension of n x n plot grid 
 	n = int(np.ceil(np.sqrt(n_seg)))
+	# create figure
 	fig = plt.figure(figsize=(10, 10))
+	# setup figure grid
 	gs = gridspec.GridSpec(n, n, wspace=0.10, hspace=0.05, left=0.1, right=0.95, bottom=0.1, top=0.95)
+	# dictionary for storing individual plots
 	ax = {}
+	# rows and columns
 	rows = np.arange(0, n, 1, dtype=int)
 	cols = np.arange(0, n, 1, dtype=int)
+	# loop over grid elements
 	for k, (i, j) in enumerate(it.product(rows, cols)):
 		if k < n_seg-1:
 			axh = "section-{:03d}".format(data['params']['sec_idx'][k])
@@ -156,9 +163,10 @@ def plot_sections(data_file):
 			for exp in range(len(data['t'])):
 				plot_color = data['field_color'][exp]
 				# plot soma voltage
-				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
+				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
 				# plot weight changes
-				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['weight'][exp]),plot_color)
+				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['weight'][exp][0]),plot_color)
+				# plot dendritic voltage
 				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['dend'][exp][k]),plot_color)
 
 	fig.savefig(plot_folder+data['params']['experiment']+'_syn_'+str(len(data['params']['sec_idx']))+
@@ -182,7 +190,7 @@ def shapeplot():
 		
 		shapeplot[cnt].fastflush()
 
-		pause simulation to view shape plot at specific time
+		# pause simulation to view shape plot at specific time
 		h.load_file('interrupts_shapeflush.hoc')
 
 		# save shape plot

@@ -1,3 +1,4 @@
+
 """
 run control
 """
@@ -30,4 +31,4 @@ def exp_2(num_secs,trials,weights):
 					'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])+'.pkl')
 
 if __name__ =="__main__":
-	exp_2(num_secs=range(1,2,1),trials=1,weights = range(44,50,6))
+	exp_2(num_secs=range(1,2,1),trials=1,weights = range(1,6,6))
