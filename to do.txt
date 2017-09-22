@@ -1,0 +1,26 @@
+to do
+
+-analysis module
+	-add comments
+	-detect peak voltage in a given section
+
+-experiments
+	-subthreshold integration
+		-apply subthreshold inputs to different branches
+		-apply an increasing number of simultaneous input
+		-record somatic voltage
+		-does dcs act independently on each branch?
+			-if so, dcs effects should scale with the number of independent branches that are activated
+
+	-sequences
+		-See Branco and Hausser 2010 for motivation
+		-branches amplify sequences due to gradient of impedence and dendritic nonlinearities
+		-choose a dendritic branch and increase the discretization to ~20 segments.  apply sequences of inputs along the branch. sequences going from distal to proximal should be amplified. does dcs boost this amplification?
+
+
+	- dendritic spike probability
+		- does dcs enhance dendritic spike probability during poisson trains
+
+	-tbs experiments
+		-replicate asif's tbs experiments, including asymmetry
+		-can asymmetry be explained by dendritic spiking 
