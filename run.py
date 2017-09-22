@@ -119,8 +119,7 @@ def run(p):
 	# 
 		pickle.dump(data, output,protocol=pickle.HIGHEST_PROTOCOL)
 
-	
-
+# plot control
 def plot_sections(data_file):
 	"""
 	creates a single figure with subplots for each section to be recorded from
@@ -174,8 +173,7 @@ def plot_sections(data_file):
 		'_weight_'+str(data['params']['w_ampa'])+'.png', dpi=250)
 	plt.close(fig)
 
-
-
+# create and save shape plot
 def shapeplot():
 		# shape plots
 		shapeplot.append(h.PlotShape())
