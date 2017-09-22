@@ -11,6 +11,8 @@ import itertools as it
 import stims
 import pickle
 import param
+
+# load standard runtime settings.  this is critical.
 h.load_file("stdrun.hoc")
 
 # run control
@@ -37,8 +39,8 @@ def run(p):
 	# create cell
 	cell1 = cell.Cell_Migliore_2005()
 
-	# synaptic stimulation
-	tuft_act = []
+	# activate synapses
+	tuft_act = []	# list of activations (each burst x subtree combination gets an entry)
 	for syn_stim_i,syn_stim in enumerate(stims.tbs(bursts=1).stim):
 
 	# activate synapses
@@ -52,16 +54,12 @@ def run(p):
 	for section in p['sec_idx']:
 		sl.append(sec = cell1.dend_a_tuft[section])
 		shapeplot.color(2,sec=cell1.dend_a_tuft[section])
-
-	# sl.printnames()
 	
 	# run time
 	h.dt = p['dt']
 	h.tstop = p['tstop']
 
-	#======================================================================================
-	# setup recording vectors
-	#======================================================================================
+	# set up recording vectors
 	# time
 	t_rec = h.Vector()
 	t_rec.record(h._ref_t)
@@ -70,45 +68,38 @@ def run(p):
 	soma_rec = h.Vector()
 	soma_rec.record(cell1.soma(0.5)._ref_v)
 	
-	# dendrite voltage (sections chosen with 'plot_idx' in parameter module)
+	# dendrite voltage (sections chosen with 'plot_sec_idx' in parameter module)
+	# plot_sec_idx is a list organized as [sections]
+	# plot_seg_idx is [sections][segments]
 	dend_rec=[]
 	for sec_i,sec in enumerate(p['plot_sec_idx']):
+		dend_rec.append([])
 		for seg_i,seg in enumerate(p['plot_seg_idx'][sec_i]):
+			# check if segment exists
 			if seg <= cell1.dend_a_tuft[sec].nseg:
+
+				# determine relative segment location in (0-1) 
 				seg_loc = (seg+1)/(cell1.dend_a_tuft[sec].nseg+1)
 				dend_rec.append(h.Vector())
-				dend_rec[sec_i].record(cell1.dend_a_tuft[sec](seg_loc)._ref_v)
+				dend_rec[sec_i][seg_i].record(cell1.dend_a_tuft[sec](seg_loc)._ref_v)
 
 	# clopath weight update
 	weight_rec=[]
 	for sec_i,sec in enumerate(p['plot_sec_idx']):
+		weight_rec.append([])
 		for seg_i,seg in enumerate(p['plot_seg_idx'][sec_i]):
-			weight_rec.append(h.Vector())
-			weight_rec[sec_i].record(cell1.syn_a_tuft_clopath[sec][seg]._ref_gbar)
+			if seg < len(cell1.syn_a_tuft_clopath[sec]):
+				weight_rec.append(h.Vector())
+				weight_rec[sec_i][seg_i].record(cell1.syn_a_tuft_clopath[sec][seg]._ref_gbar)
 	
 	# loop over dcs fields
 	cnt=-1
 	shapeplot = []
 	for f_i,f in enumerate(p['field']):
 		cnt +=1
+		
 		# insert extracellular field
 		stims.dcs(cell=0,field_angle=p['field_angle'],intensity=f)
-		
-		# shape plots
-		# shapeplot.append(h.PlotShape())
-		# shapeplot[cnt].color_list(sl,1)
-
-		# shapeplot[cnt].variable('v')
-		# h.fast_flush_list.append(shapeplot[cnt])
-		# shapeplot[cnt].exec_menu('View = plot')
-		# shapeplot[cnt].exec_menu('Shape Plot')
-		# shapeplot[cnt].scale(-65, 10)
-		# shapeplot[cnt].colormap(1,255,255,0)
-		
-		# shapeplot[cnt].fastflush()
-
-		# pause simulation to view shape plot at specific time
-		# h.load_file('interrupts_shapeflush.hoc')
 		
 		# run simulation
 		h.run()
@@ -120,9 +111,6 @@ def run(p):
 		data['weight'].append(np.array(weight_rec))
 		data['field'].append(f)
 		data['field_color'].append(p['field_color'][f_i])	
-	
-		# for sec in h.allsec():
-		# 	print sec(0.5).e_extracellular
 
 	# save data
 	data_folder = 'Data/'
@@ -131,9 +119,7 @@ def run(p):
 	# 
 		pickle.dump(data, output,protocol=pickle.HIGHEST_PROTOCOL)
 
-	# save shape plot
-	# pwm = h.PWManager()
-	# pwm.printfile('shapeplot_'+p['experiment']+'_trial_'+str(p['trial'])+'.eps', 0, 0)
+	
 
 def plot_sections(data_file):
 	"""
@@ -179,6 +165,29 @@ def plot_sections(data_file):
 		'_trial_'+str(data['params']['trial'])+
 		'_weight_'+str(data['params']['w_ampa'])+'.png', dpi=250)
 	plt.close(fig)
+
+
+
+def shapeplot():
+		# shape plots
+		shapeplot.append(h.PlotShape())
+		shapeplot[cnt].color_list(sl,1)
+
+		shapeplot[cnt].variable('v')
+		h.fast_flush_list.append(shapeplot[cnt])
+		shapeplot[cnt].exec_menu('View = plot')
+		shapeplot[cnt].exec_menu('Shape Plot')
+		shapeplot[cnt].scale(-65, 10)
+		shapeplot[cnt].colormap(1,255,255,0)
+		
+		shapeplot[cnt].fastflush()
+
+		pause simulation to view shape plot at specific time
+		h.load_file('interrupts_shapeflush.hoc')
+
+		# save shape plot
+		pwm = h.PWManager()
+		pwm.printfile('shapeplot_'+p['experiment']+'_trial_'+str(p['trial'])+'.eps', 0, 0)
 
 # procedures to be initialized if called as a script
 if __name__ =="__main__":

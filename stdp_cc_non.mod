@@ -145,5 +145,5 @@ ENDCOMMENT
 NET_RECEIVE(weight (uS)) {
 		   :g = gbar : set the max conductance of the synapse
 		   t_last_pre = 1
-		   printf("received weight=%f, at t=%f\n", weight,t )
+		   :printf("received weight=%f, at t=%f\n", weight,t )
 }
