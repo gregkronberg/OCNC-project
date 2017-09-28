@@ -41,7 +41,7 @@ def run(p):
 
 	# activate synapses
 	tuft_act = []	# list of activations (each burst x subtree combination gets an entry)
-	for syn_stim_i,syn_stim in enumerate(stims.tbs(bursts=1).stim):
+	for syn_stim_i,syn_stim in enumerate(stims.tbs(bursts=p['bursts']).stim):
 
 	# activate synapses
 		tuft_act.append(cell.Syn_act(syn_stim,cell1.syn_a_tuft_ampa,cell1.syn_a_tuft_nmda,cell1.syn_a_tuft_clopath,p['sec_idx'],p['seg_idx'],p['w_ampa'],p['w_nmda']))
@@ -114,7 +114,7 @@ def run(p):
 
 	# save data
 	data_folder = 'Data/'
-	with open(data_folder+'data_'+p['experiment']+'_syn_'+str(len(p['sec_idx']))+'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])
+	with open(data_folder+'data_'+p['experiment']+'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])
 		+'.pkl', 'wb') as output:
 	# 
 		pickle.dump(data, output,protocol=pickle.HIGHEST_PROTOCOL)
@@ -162,9 +162,9 @@ def plot_sections(data_file):
 			for exp in range(len(data['t'])):
 				plot_color = data['field_color'][exp]
 				# plot soma voltage
-				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
+				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
 				# plot weight changes
-				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['weight'][exp][0]),plot_color)
+				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['weight'][exp][0]),plot_color)
 				# plot dendritic voltage
 				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['dend'][exp][k]),plot_color)
 
