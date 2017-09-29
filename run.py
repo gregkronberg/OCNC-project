@@ -39,6 +39,13 @@ def run(p):
 	# create cell
 	cell1 = cell.Cell_Migliore_2005()
 
+	# clopath parameters
+	for a in range(len(cell1.syn_a_tuft_clopath)):
+		for b in range(len(cell1.syn_a_tuft_clopath[a])):
+			cell1.syn_a_tuft_clopath[a][b].A_p = p['clopath_A_p']
+			cell1.syn_a_tuft_clopath[a][b].delay_steps = p['clopath_delay_steps']
+
+
 	# activate synapses
 	tuft_act = []	# list of activations (each burst x subtree combination gets an entry)
 	for syn_stim_i,syn_stim in enumerate(stims.tbs(bursts=p['bursts']).stim):

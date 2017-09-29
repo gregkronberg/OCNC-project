@@ -46,4 +46,4 @@ def exp_3(trials,weights):
 
 
 if __name__ =="__main__":
-	exp_3(trials=1,weights = [12])
+	exp_3(trials=1,weights = [8.9])

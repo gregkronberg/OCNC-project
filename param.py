@@ -109,8 +109,8 @@ class exp_3:
 			'w_nmda':.00018, # nmda weight (microsiemens or micro-ohms)
 			'sec_idx': self.sec_idx,
 			'seg_idx':self.seg_idx,
-			'plot_sec_idx':self.sec_idx,
-			'plot_seg_idx':self.seg_idx,
+			'plot_sec_idx':self.sec_idx[:5],
+			'plot_seg_idx':self.seg_idx[:5],
 			'field_angle':0,
 			'field':[-20,0,20],
 			'field_color':['b','k','r'],
@@ -119,5 +119,7 @@ class exp_3:
 			'pulses':4,
 			'pulse_freq':100,
 			'burst_freq':5,
-			'tstop' : 100#5*1000/5 + 30 + 5*1000/100 +30
+			'tstop' : 100,#5*1000/5 + 30 + 5*1000/100 +30
+			'clopath_A_p': .0004, # amplitude for potentiation
+			'clopath_delay_steps': 1
 			}
