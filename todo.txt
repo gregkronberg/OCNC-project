@@ -22,5 +22,21 @@ to do
 		- does dcs enhance dendritic spike probability during poisson trains
 
 	-tbs experiments
+		- detect spikes in each compartment and determine where they were initiated
+
+		-set clopath parameters to same as in original paper
+		-set up to save data and analyze using python later (voltage in all compartments, weights in all compartments, which synapses were activated
+		)
+		-run 100 simulations, randomly drawing the number of activated synapses from a gaussian (0.4 mean, 0.1 sd)
+
+
 		-replicate asif's tbs experiments, including asymmetry
-		-can asymmetry be explained by dendritic spiking 
+		-can asymmetry be explained by dendritic spiking? h-current?
+		-replicate with 20V/m, then reduce intensity to see if effects are linear
+		-randomly activate 40% of synapses and run TBS
+		-choose parameters to fit
+			-synaptic current
+			-h-current and a-type potassium current
+			-clopath rule: ltp/ltd thresholds, learning rate
+
+		-how to deliver multiple bursts with netstim so that previous burst does not get overridden? Multiple NetCon objects to correspond to each netstim?

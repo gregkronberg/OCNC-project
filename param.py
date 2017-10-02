@@ -80,7 +80,8 @@ class exp_3:
 
 	Activate a random set of synapses on the apical dendritic tuft with TBS and record the resulting plasticity
 	"""
-	def __init__(self,syn_frac):
+	def __init__(self,syn_frac=0.4):
+		
 		# fraction of synapses that are randomly activated
 		self.syn_frac = syn_frac
 		# load cell
@@ -101,25 +102,37 @@ class exp_3:
 		for sec in self.sec_idx:
 			self.seg_idx.append([self.seg_list[sec_i] for sec_i,sec_num in enumerate(self.sec_list) if sec_num==sec])
 		
-
+		# set parameters.  Cannot contain any hoc objects, as this will be pickled for data storage
 		self.params = {
 			'experiment':'exp_3',
+			'data_folder':'Data/exp_3/',
+			'fig_folder':'png figures/',
+			'syn_frac':self.syn_frac,
 			'trial':0,
-			'w_ampa':.00018, # ampa weight (microsiemens or micro-ohms)
-			'w_nmda':.00018, # nmda weight (microsiemens or micro-ohms)
+			'w_ampa':.002, # ampa weight (microsiemens or micro-ohms)
+			'w_nmda':.002, # nmda weight (microsiemens or micro-ohms)
 			'sec_idx': self.sec_idx,
 			'seg_idx':self.seg_idx,
-			'plot_sec_idx':self.sec_idx[:5],
-			'plot_seg_idx':self.seg_idx[:5],
+			'plot_sec_idx':self.sec_idx,
+			'plot_seg_idx':self.seg_idx,
 			'field_angle':0,
 			'field':[-20,0,20],
-			'field_color':['b','k','r'],
+			'field_color':['r','k','b'],
 			'dt' : .025,
 			'bursts':1,
 			'pulses':4,
 			'pulse_freq':100,
 			'burst_freq':5,
 			'tstop' : 100,#5*1000/5 + 30 + 5*1000/100 +30
-			'clopath_A_p': .0004, # amplitude for potentiation
-			'clopath_delay_steps': 1
+			
+			# clopath parameters
+			'clopath_delay_steps': 1,
+			'clopath_tau_0':12, # time constant (ms) for low passed membrane potential for depression
+			'clopath_tau_r' : 30, # time constant (ms) for low pass filter presynaptic variable
+			'clopath_tau_y': 10, # time constant (ms) for low pass filter post membrane potential for potentiation
+			'clopath_A_m':.0001, # depression magnitude parameter (mV^-1)
+			'clopath_A_p': .004, # amplitude for potentiation (mV^-2)
+			'clopath_tetam':-41, # depression threshold (mV)
+			'clopath_tetap':-38, # potentiation threshold (mV)
+
 			}

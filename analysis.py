@@ -6,7 +6,79 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import itertools as it
 import os
-import pickle
+import cPickle as pickle
+import param
+
+class Weights():
+	"""
+	measure weight change at group of synapses
+	"""
+	def __init__(self,p):
+		self.measure_dw(p)
+		self.save_dw(p)
+		self.plot_dw(p)
+
+	def measure_dw(self,p):
+		# loop over data files in data folder
+		dirlist = os.listdir(p['data_folder'])
+		pkl_file = open(p['data_folder']+dirlist[0], 'rb')
+		self.data = pickle.load(pkl_file)
+
+		cnt = -1
+		self.w_end = [[],[],[]]
+		self.w_start = [[],[],[]]
+		for data_file in os.listdir(p['data_folder']):
+			if 'data' in data_file:
+				cnt += 1
+				print cnt
+				# load data file
+				pkl_file = open(p['data_folder']+data_file, 'rb')
+				self.data = pickle.load(pkl_file)
+
+				# find active synapses (all recorded segments were active)
+				# measure weight change at each active synapse
+				
+				for a in range(len(self.data['weight'])): # loop fields
+					for b in range(len(self.data['weight'][a])): # loop over sections
+						for c in range(len(self.data['weight'][a][b])):
+							self.w_end[a].append(self.data['weight'][a][b][c][-1])
+							self.w_start[a].append(self.data['weight'][a][b][c][0])
+
+				# data is field x active section array. each element is a hoc recording vector object that needs to be converted to array
+
+	def save_dw(self,p):
+		with open(p['data_folder']+'dw_all_'+p['experiment']+'.pkl', 'wb') as output:
+
+			pickle.dump(self.w_end, output,protocol=pickle.HIGHEST_PROTOCOL)
+
+
+	def plot_dw(self,p):
+		self.fig,self.ax = plt.subplots(figsize=(10, 10))
+		for field_i,field in enumerate(p['field']):
+			self.ax.plot(field_i*np.ones(len(self.w_end[field_i])),self.w_end[field_i],self.data['field_color'][field_i]+'.')
+			# self.ax.plot(field_i,np.mean(self.w_end[field_i]),self.data['field_color'][field_i]+'.')
+			print np.mean(self.w_end[field_i])
+
+		self.fig.savefig(p['data_folder']+'test'+'.png', dpi=250)
+		plt.close(self.fig)
+
+		
+
+
+
+
+			# store weight change
+
+class Spike_source():
+	"""
+	detect spikes and determine where they originated
+	"""
+	def __init__(self,p):
+		# set spike detection threshold
+		pass
+
+		# loop over section
+
 
 def exp_2_spike_analysis():
 	data_all = {
@@ -71,7 +143,6 @@ def exp_2_spike_analysis():
 	with open('data_all_exp_2'+'.pkl', 'wb') as output:
 	# 
 		pickle.dump(data_all, output,protocol=pickle.HIGHEST_PROTOCOL)
-
 
 def plot_spikes(data_file):
 	"""
@@ -151,10 +222,10 @@ def plot_spikes(data_file):
 	fig.savefig('data_spike_exp_2'+'.png', dpi=250)
 	plt.close(fig)
 
-
 if __name__ =="__main__":
-	exp_2_spike_analysis()
-	plot_spikes('data_all_exp_2'+'.pkl')
+	Weights(param.exp_3().params)
+	# exp_2_spike_analysis()
+	# plot_spikes('data_all_exp_2'+'.pkl')
 
 
 
