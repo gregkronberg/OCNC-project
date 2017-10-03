@@ -11,6 +11,7 @@ import itertools as it
 import stims
 import pickle
 import param
+import os
 
 # load standard runtime settings.  this is critical.
 h.load_file("stdrun.hoc")
@@ -40,7 +41,7 @@ class Run():
 		# create cell
 		self.cell1 = cell.Cell_Migliore_2005()
 
-		# clopath parameters
+		# update clopath parameters
 		for a in range(len(self.cell1.syn_a_tuft_clopath)):
 			for b in range(len(self.cell1.syn_a_tuft_clopath[a])):
 				self.cell1.syn_a_tuft_clopath[a][b].delay_steps = p['clopath_delay_steps']
@@ -126,6 +127,9 @@ class Run():
 			self.data['field_color'].append(p['field_color'][f_i])	
 
 def save_data(data,p):	# save data
+	if os.path.isdir(p['data_folder']) is False:
+		os.mkdir(p['data_folder'])
+		
 	with open(p['data_folder']+'data_'+p['experiment']+'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])
 		+'.pkl', 'wb') as output:
 

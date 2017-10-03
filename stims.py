@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
 """
+implement extracellular stimulation or presynaptic input patterns
+
 Created on Wed Jun 28 03:06:39 2017
 
 @author: Greg Kronberg
@@ -7,13 +8,22 @@ Created on Wed Jun 28 03:06:39 2017
 import numpy as np
 from neuron import h
 
+# extracellular field
 def dcs(field_angle,intensity,cell=0):
     """
     Apply DC extracellular field by inserting extracellular mechanism in each segment
+
+    Arguments:
+
+    field_angle - angle relative to the somato-dendritic axis
+
+    intensity - stimulation intensity in V/m
+
+    cell - which cell to stimulate. if 0, stimulate all segments in the top level of hoc
     """
+    
     if cell == 0:
         n_sec = 0
-    #sec_list = [None]
         # loop over sections
         for section in h.allsec():
             

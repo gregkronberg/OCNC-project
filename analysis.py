@@ -2,6 +2,7 @@
 analysis
 """
 import numpy as np
+from scipy import stats
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import itertools as it
@@ -9,74 +10,172 @@ import os
 import cPickle as pickle
 import param
 
+
 class Weights():
 	"""
 	measure weight change at group of synapses
+
+	saves initial and final weights at each active synapse across all simulated neurons (dcs polarity x synapses)
 	"""
 	def __init__(self,p):
-		self.measure_dw(p)
+		self.p = p
+		self.n_pol = len(self.p['field'])
+		self.n_act_seg = len(self.p['seg_list'])
+		self.group_dw(p)
 		self.save_dw(p)
-		self.plot_dw(p)
+		self.plot_dw_all(p)
+		self.plot_dw_mean(p)
 
-	def measure_dw(self,p):
-		# loop over data files in data folder
-		dirlist = os.listdir(p['data_folder'])
-		pkl_file = open(p['data_folder']+dirlist[0], 'rb')
-		self.data = pickle.load(pkl_file)
-
-		cnt = -1
-		self.w_end = [[],[],[]]
-		self.w_start = [[],[],[]]
+	def group_dw(self,p):
+		# arrays for storing all weight changes across neurons
+		self.w_end_all = np.empty([self.n_pol,0])
+		self.w_start_all = np.empty([self.n_pol,0])
+		# loop over experiments (neurons)
 		for data_file in os.listdir(p['data_folder']):
+			# check for proper data file format
 			if 'data' in data_file:
-				cnt += 1
-				print cnt
 				# load data file
 				pkl_file = open(p['data_folder']+data_file, 'rb')
-				self.data = pickle.load(pkl_file)
+				data = pickle.load(pkl_file)
+				# measure weight changes for individual neuron
+				self.measure_dw(data)
+				# add individual neuron to the group
+				self.w_end_all = np.append(self.w_end_all,self.w_end,axis=1)
+				self.w_start_all = np.append(self.w_start_all,self.w_start,axis=1)
 
-				# find active synapses (all recorded segments were active)
-				# measure weight change at each active synapse
-				
-				for a in range(len(self.data['weight'])): # loop fields
-					for b in range(len(self.data['weight'][a])): # loop over sections
-						for c in range(len(self.data['weight'][a][b])):
-							self.w_end[a].append(self.data['weight'][a][b][c][-1])
-							self.w_start[a].append(self.data['weight'][a][b][c][0])
+	def measure_dw(self,data):
+		# set up arrays to record final and initial weights at each active synapse
+		self.w_end = np.empty([n_pol,n_act_seg]) # polarity x segments
+		self.w_start = np.empty([n_pol,n_act_seg]) # polarity x segments
 
-				# data is field x active section array. each element is a hoc recording vector object that needs to be converted to array
+		# find active synapses (all recorded segments were active)
+		# measure weight change at each active synapse
+		for a in range(len(data['weight'])): # loop fields
+			cnt = -1
+			for b in range(len(data['weight'][a])): # loop over sections
+				for c in range(len(data['weight'][a][b])): # loop over segemnts
+					cnt+=1
+					self.w_end[a,cnt] = data['weight'][a][b][c][-1]
+					self.w_start[a,cnt] = data['weight'][a][b][c][0]
 
 	def save_dw(self,p):
 		with open(p['data_folder']+'dw_all_'+p['experiment']+'.pkl', 'wb') as output:
-
 			pickle.dump(self.w_end, output,protocol=pickle.HIGHEST_PROTOCOL)
 
-
-	def plot_dw(self,p):
-		self.fig,self.ax = plt.subplots(figsize=(10, 10))
+	def plot_dw_all(self,p,dw):
+		# create figure
+		self.fig_dw_all = plt.figure()
+		# loop over n_pol
 		for field_i,field in enumerate(p['field']):
-			self.ax.plot(field_i*np.ones(len(self.w_end[field_i])),self.w_end[field_i],self.data['field_color'][field_i]+'.')
-			# self.ax.plot(field_i,np.mean(self.w_end[field_i]),self.data['field_color'][field_i]+'.')
-			print np.mean(self.w_end[field_i])
+			# plot
+			plt.plot(field_i*np.ones(len(dw[field_i,:])),dw[field_i,:],p['field_color'][field_i]+'.')
+		# save figure
+		self.fig_dw_all.savefig(p['data_folder']+'fig_dw_all'+'.png', dpi=250)
+		plt.close(fig_dw_all)
+	
+	def plot_dw_mean(self,p,dw):
+		# determine stats
+		dw_mean = np.mean(dw,axis=1)
+		dw_std = np.std(dw,axis=1)
+		dw_sem = np.sem(dw,axis=1)
+		# create figure
+		self.fig_dw_mean = plt.figure()
+		# loop over n_pol
+		for field_i,field in enumerate(p['field']):
+			# plot
+			plt.errorbar(field_i,dw_mean[field_i],yerr=dw_sem[field_i],color = p['field_color'][field_i],fmt='.')
+		# save figure
+		self.fig_dw_all.savefig(p['data_folder']+'fig_dw_mean'+'.png', dpi=250)
+		plt.close(fig_dw_mean)
 
-		self.fig.savefig(p['data_folder']+'test'+'.png', dpi=250)
-		plt.close(self.fig)
-
-		
-
-
-
-
-			# store weight change
-
-class Spike_source():
+class Spikes():
 	"""
 	detect spikes and determine where they originated
 	"""
 	def __init__(self,p):
-		# set spike detection threshold
-		pass
+		self.p = p
+		self.n_pol = len(self.p['field'])
+		self.n_act_seg = len(self.p['seg_list'])
+		self.group_spikes(p)
 
+
+	def group_spikes(self,p):
+		cell_num = -1 
+		for data_file in os.listdir(p['data_folder']):
+			# check for proper data file format
+			if 'data' in data_file:
+				cell_num+=1
+				# load data file
+				pkl_file = open(p['data_folder']+data_file, 'rb')
+				data = pickle.load(pkl_file)
+
+				self.measure_spikes(data, cell_num)
+				
+
+	def measure_spikes(self,data,cell_num=0):
+		# detect spikes for individual neurons
+		# initialize lists
+		self.spiket_soma = [] # soma spike times [polarity list][spikes array]
+		self.spiket_dend = [] # dendrite spike times [polarity list][spikes array]
+		self.sec_list = [] # keep track of sections (same dimensions as spiket_dend)
+		self.seg_list = [] # keep track of segments (same dimensions as spiket_dend)
+		self.cell_list_soma = []
+		self.cell_list_dend = []
+		# loop over polarity
+		for pol in range(self.n_pol):
+			self.spiket_soma.append(np.empty([]))
+			self.spiket_dend.append(np.empty([]))
+			self.sec_list.append([])
+			self.seg_list.append([])
+			self.cell_list_dend.append([])
+			self.cell_list_dend.append([])
+
+			# detect soma spikes
+			soma_spikes = self.detect_spikes(np.array(data['soma'][pol]))
+			# add spike times to array
+			self.spiket_soma[pol] = np.append(self.spiket_soma[pol],soma_spikes,axis=0)
+			# track cell number
+			for spike in soma_spikes:
+				self.cell_list_soma[pol].append(cell_num)
+			# loop over dendritic segments
+			cnt=-1
+			for sec in range(len(data['dend'][pol])): # loop over sections
+				for seg in range(len(data['dend'][pol][sec])): # loop over segemnts
+				cnt+=1
+				# detect spikes
+				dend_spikes = self.spiket_dend[cnt][pol,:] = self.detect_spikes(np.array(data['dend'][pol][sec][seg])) 
+				# add spike times to array
+				self.spiket_dend[pol] = np.append(self.spiket_dend[pol],dend_spikes,axis=0)
+				# for each spike store the section, segment, cell number in the appropriate list
+				for spike in dend_spikes:
+					self.sec_list[pol].append(p['seg_idx'][sec])
+					self.seg_list[pol].append(p['seg_idx'][sec][seg])
+					self.cell_list_dend[pol].append(cell_num)
+
+	def plot_spike_hist_soma(data,p):
+		warmup = p['warmup']./dt
+		finish = p['tstop']./dt
+		bins = np.linspace(warmup,finish ,(finish-warmup)/2)
+		fig_spike_hist_soma = plt.figure()
+		for pol in range(self.n_pol):
+			plt.hist(self.spiket_soma[pol],bins=bins,color = p['field_color'][pol])
+		# save figure
+		self.fig_spike_hist_soma.savefig(p['data_folder']+'fig_spike_hist_soma'+'.png', dpi=250)
+		plt.close(fig_spike_hist_soma)
+
+	def plot_spike_hist_soma(data,p):
+		warmup = p['warmup']./dt
+		finish = p['tstop']./dt
+		bins = np.linspace(warmup,finish ,(finish-warmup)/2)
+		fig_spike_hist_dend = plt.figure()
+		for pol in range(self.n_pol):
+			plt.hist(self.spiket_dend[pol],bins=bins,color = p['field_color'][pol])
+		self.fig_spike_hist_dend.savefig(p['data_folder']+'fig_spike_hist_dend'+'.png', dpi=250)
+		plt.close(fig_spike_hist_dend)
+
+	def detect_spikes(self,data,threshold=-20):
+		# detect indeces where vector crosses threshold in the positive direction
+		return np.where(np.diff(np.sign(data-threshold))>0)
 		# loop over section
 
 

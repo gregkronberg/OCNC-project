@@ -111,6 +111,8 @@ class exp_3:
 			'trial':0,
 			'w_ampa':.002, # ampa weight (microsiemens or micro-ohms)
 			'w_nmda':.002, # nmda weight (microsiemens or micro-ohms)
+			'sec_list':self.sec_list,
+			'seg_list':self.seg_list,
 			'sec_idx': self.sec_idx,
 			'seg_idx':self.seg_idx,
 			'plot_sec_idx':self.sec_idx,

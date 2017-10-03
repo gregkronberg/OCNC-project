@@ -58,11 +58,6 @@ class Cell_Migliore_2005:
 		h.load_file('geo5038804.hoc')   # load cell class geometry from Migliore 2005
 		h.load_file('fixnseg.hoc')  	# set discretization based on dlambda rule (set dlambda in hoc file)
 
-		# self.geometry = {'soma':h.soma[0],
-		# 'axon':h.axon[0],
-		# 'dend_b':h.dendrite,
-		# 'dend_a_trunk':h.user5,
-		# 'dend_a_tuft':h.apical_dendrite}
 		self.soma = h.soma[0]
 		self.axon = h.axon[0]
 		self.dend_b = h.dendrite
@@ -114,7 +109,6 @@ class Cell_Migliore_2005:
 		self.soma.gkabar_kap = self.KMULTP			# scaling factor for a-type potassium current
 		self.soma.ena = self.ena					# sodium reversal potential 
 		self.soma.ek = self.ek						# potassium reversal potential 
-		# self.soma.ehd_hd = ehd
 
 		# set soma as origin for distance measurements
 		h.distance(sec = self.soma)
@@ -402,5 +396,6 @@ class Syn_act:
 					self.nc_nmda[a].append( h.NetCon(netstim,self.choose_syn_nmda[a][b],0,0,w_nmda))
 					self.nc_clopath[a].append( h.NetCon(netstim,self.choose_syn_clopath[a][b],0,0,w_ampa))
 
+# set procedure if called as a script
 if __name__ == "__main__":
 	cell_1 = Cell_Migliore_2005()
