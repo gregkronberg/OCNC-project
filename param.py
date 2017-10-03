@@ -121,6 +121,7 @@ class exp_3:
 			'field':[-20,0,20],
 			'field_color':['r','k','b'],
 			'dt' : .025,
+			'warmup': 60,
 			'bursts':1,
 			'pulses':4,
 			'pulse_freq':100,
