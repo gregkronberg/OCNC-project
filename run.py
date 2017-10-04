@@ -38,6 +38,7 @@ class Run():
 			'params':p,
 				}
 
+
 		# create cell
 		self.cell1 = cell.Cell_Migliore_2005()
 
@@ -56,9 +57,15 @@ class Run():
 		# activate synapses
 		self.tuft_act = []	# list of activations (each burst x subtree combination gets an entry)
 		for syn_stim_i,syn_stim in enumerate(stims.tbs(bursts=p['bursts']).stim):
+			# randomize weights
+			if p['w_rand']:
+			# activate synapses
+				self.tuft_act.append(cell.Syn_act(syn_stim,self.cell1.syn_a_tuft_ampa,self.cell1.syn_a_tuft_nmda,self.cell1.syn_a_tuft_clopath,p['sec_idx'],p['seg_idx'],np.random.normal(loc=p['w_ampa'],scale=p['w_std']),np.random.normal(loc=p['w_nmda'],scale=p['w_std'])))
+			# dont randomize weights
+			else:
+				# activate synapses
+				self.tuft_act.append(cell.Syn_act(syn_stim,self.cell1.syn_a_tuft_ampa,self.cell1.syn_a_tuft_nmda,self.cell1.syn_a_tuft_clopath,p['sec_idx'],p['seg_idx'],p['w_ampa'],p['w_nmda']))
 
-		# activate synapses
-			self.tuft_act.append(cell.Syn_act(syn_stim,self.cell1.syn_a_tuft_ampa,self.cell1.syn_a_tuft_nmda,self.cell1.syn_a_tuft_clopath,p['sec_idx'],p['seg_idx'],p['w_ampa'],p['w_nmda']))
 
 		# highlight active sections
 		self.shapeplot = h.PlotShape()
@@ -85,53 +92,75 @@ class Run():
 		# dendrite voltage (sections chosen with 'plot_sec_idx' in parameter module)
 		# plot_sec_idx is a list organized as [sections]
 		# plot_seg_idx is [sections][segments]
-		self.dend_rec=[]
-		for sec_i,sec in enumerate(p['plot_sec_idx']):
-			self.dend_rec.append([])
-			for seg_i,seg in enumerate(p['plot_seg_idx'][sec_i]):
-				# check if segment exists
-				if seg <= self.cell1.dend_a_tuft[sec].nseg:
-
-					# determine relative segment location in (0-1) 
-					seg_loc = (seg+1)/(self.cell1.dend_a_tuft[sec].nseg+1)
-					self.dend_rec[sec_i].append(h.Vector())
-					self.dend_rec[sec_i][seg_i].record(self.cell1.dend_a_tuft[sec](seg_loc)._ref_v)
-
-		# clopath weight update
-		self.weight_rec=[]
-		for sec_i,sec in enumerate(p['plot_sec_idx']):
-			self.weight_rec.append([])
-			for seg_i,seg in enumerate(p['plot_seg_idx'][sec_i]):
-				if seg < len(self.cell1.syn_a_tuft_clopath[sec]):
-					self.weight_rec[sec_i].append(h.Vector())
-					self.weight_rec[sec_i][seg_i].record(self.cell1.syn_a_tuft_clopath[sec][seg]._ref_gbar)
+		
 		
 		# loop over dcs fields
 		cnt=-1
 		shapeplot = []
+		self.dend_rec=[]
+		self.weight_rec=[]
+		self.dend_arr=[]
+		self.weight_arr=[]
 		for f_i,f in enumerate(p['field']):
 			cnt +=1
-			
+			self.dend_rec.append([])
+			self.dend_arr.append([])
+			for sec_i,sec in enumerate(p['plot_sec_idx']):
+				self.dend_rec[cnt].append([])
+				self.dend_arr[cnt].append([])
+				for seg_i,seg in enumerate(p['plot_seg_idx'][sec_i]):
+					# check if segment exists
+					if seg <= self.cell1.dend_a_tuft[sec].nseg:
+
+						# determine relative segment location in (0-1) 
+						seg_loc = (seg+1)/(self.cell1.dend_a_tuft[sec].nseg+1)
+						# print cnt
+						self.dend_rec[cnt][sec_i].append(h.Vector())
+						self.dend_arr[cnt][sec_i].append([])
+						self.dend_rec[cnt][sec_i][seg_i].record(self.cell1.dend_a_tuft[sec](seg_loc)._ref_v)
+
+			# clopath weight update
+			self.weight_rec.append([])
+			self.weight_arr.append([])
+			for sec_i,sec in enumerate(p['plot_sec_idx']):
+				self.weight_rec[cnt].append([])
+				self.weight_arr[cnt].append([])
+				for seg_i,seg in enumerate(p['plot_seg_idx'][sec_i]):
+					if seg < len(self.cell1.syn_a_tuft_clopath[sec]):
+						self.weight_rec[cnt][sec_i].append(h.Vector())
+						self.weight_arr[cnt][sec_i].append([])
+						self.weight_rec[cnt][sec_i][seg_i].record(self.cell1.syn_a_tuft_clopath[sec][seg]._ref_gbar)
+
 			# insert extracellular field
 			stims.dcs(cell=0,field_angle=p['field_angle'],intensity=f)
 			
 			# run simulation
 			h.run()
 
+			for a in range(len(self.dend_rec[cnt])):
+				for b in range(len(self.dend_rec[cnt][a])):
+					self.dend_arr[cnt][a][b] = np.array(self.dend_rec[cnt][a][b])
+					self.weight_arr[cnt][a][b] = np.array(self.weight_rec[cnt][a][b])
+			
+			# print np.array(self.dend_rec)[cnt][0][0][200]
 			# store data
 			self.data['t'].append(np.array(self.t_rec))
 			self.data['soma'].append(np.array(self.soma_rec))
-			self.data['dend'].append(np.array(self.dend_rec))
-			self.data['weight'].append(np.array(self.weight_rec))
 			self.data['field'].append(f)
 			self.data['field_color'].append(p['field_color'][f_i])	
+		self.data['dend'] = self.dend_arr
+		self.data['weight'] = self.weight_arr
+
+		for a in range(len(self.data['dend'])):
+			print self.dend_rec[a][0][0][200]
+			print self.data['dend'][a][0][0][200]
 
 def save_data(data,p):	# save data
 	if os.path.isdir(p['data_folder']) is False:
 		os.mkdir(p['data_folder'])
-		
+
 	with open(p['data_folder']+'data_'+p['experiment']+'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])
-		+'.pkl', 'wb') as output:
+		+'_synfrac_'+str(p['syn_frac'])+'.pkl', 'wb') as output:
 
 		pickle.dump(data, output,protocol=pickle.HIGHEST_PROTOCOL)
 

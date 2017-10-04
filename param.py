@@ -106,15 +106,19 @@ class exp_3:
 		self.params = {
 			'experiment':'exp_3',
 			'data_folder':'Data/exp_3/',
-			'fig_folder':'png figures/',
+			'fig_folder':'png figures/exp_3/',
 			'syn_frac':self.syn_frac,
 			'trial':0,
-			'w_ampa':.002, # ampa weight (microsiemens or micro-ohms)
-			'w_nmda':.002, # nmda weight (microsiemens or micro-ohms)
+			'w_rand':False,
+			'w_std':.0005,
+			'w_ampa':.0018, # ampa weight (microsiemens or micro-ohms)
+			'w_nmda':.0018, # nmda weight (microsiemens or micro-ohms)
 			'sec_list':self.sec_list,
 			'seg_list':self.seg_list,
 			'sec_idx': self.sec_idx,
 			'seg_idx':self.seg_idx,
+			'plot_sec_list':self.sec_list,
+			'plot_seg_list':self.seg_list,
 			'plot_sec_idx':self.sec_idx,
 			'plot_seg_idx':self.seg_idx,
 			'field_angle':0,
@@ -139,3 +143,7 @@ class exp_3:
 			'clopath_tetap':-38, # potentiation threshold (mV)
 
 			}
+
+# set procedure if called as a script
+if __name__ == "__main__":
+	pass

@@ -43,15 +43,12 @@ def exp_3(trials,weights):
 			p['trial']=tri
 			p['w_ampa']=w*p['w_ampa']
 			p['w_nmda']=w*p['w_nmda']
+			p['w_rand']=True
 			start = time.time() # start timer
 			sim = run.Run(p)	# run simulation
 			end = time.time() # end timer
 			print 'trial'+ str(tri) + ' duration:' + str(end -start) # print simulation time
 			run.save_data(sim.data,p)
-			data_folder = 'Data/exp_3/'
-			data_file = data_folder+'data_'+p['experiment']+'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])+'.pkl'
-			fig_folder = 'png figures/'
-			run.plot_sections(data_file,fig_folder)
 
 if __name__ =="__main__":
-	exp_3(trials=1,weights = [1])
+	exp_3(trials=10,weights = [1])

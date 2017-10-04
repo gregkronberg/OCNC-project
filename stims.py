@@ -79,6 +79,7 @@ def dcs(field_angle,intensity,cell=0):
                 
                 # insert calculate extracellular potential
                 seg.e_extracellular = .001*intensity*mag*np.cos(angle_field)
+                # print seg.e_extracellular
     else:        
         n_sec = 0
         #sec_list = [None]
