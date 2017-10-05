@@ -56,7 +56,6 @@ class Weights():
 			for b in range(len(data['weight'][a])): # loop over sections
 				for c in range(len(data['weight'][a][b])): # loop over segemnts
 					cnt+=1
-					print cnt
 					self.w_end[a,cnt] = data['weight'][a][b][c][-1]
 					self.w_start[a,cnt] = data['weight'][a][b][c][0]
 
@@ -149,6 +148,9 @@ class Spikes():
 					self.cell_list_soma[pol].append(cell_num)
 			# loop over dendritic segments
 			cnt=-1
+			spiket_dend_track = np.empty([1,0])
+			sec_list_track = []
+			seg_list_track = []
 			for sec in range(len(data['dend'][pol])): # loop over sections
 				for seg in range(len(data['dend'][pol][sec])): # loop over segemnts
 					cnt+=1
@@ -157,19 +159,38 @@ class Spikes():
 					if dend_spikes.size!=0:
 						# add spike times to array
 						self.spiket_dend[pol] = np.append(self.spiket_dend[pol],dend_spikes,axis=1)
+						# spiket_dend_track = np.append(spiket_dend_track,dend_spikes,axis=1)
 						# for each spike store the section, segment, cell number in the appropriate list
 						for spike in dend_spikes:
 							self.sec_list[pol].append(p['seg_idx'][sec])
 							self.seg_list[pol].append(p['seg_idx'][sec][seg])
 							self.cell_list_dend[pol].append(cell_num)
-	# def spike_start(self):
-	# 	# loop over cells
-	# 	for pol in range(self.n_pol):
-	# 		cells = list(set(self.cell_list_dend[pol]))
-	# 		for cell_dend in cells:
-	# 			spiket_dend_cell = [spikes for spike_i,spikes in enumerate(self.spiket_dend[pol][0]) if self.cell_list_dend[pol][spike_i]==cell_dend]
+							sec_list_track.append(p['seg_idx'][sec])
+							seg_list_track.append(p['seg_idx'][sec][seg])
 
-	# 			spiket_dend_start
+	def spike_start(self):
+		# loop over polarities
+		for pol in range(self.n_pol):
+			# list all cells with a dendritic spike
+			cells = list(set(self.cell_list_dend[pol]))
+			# numpy array for storing minumum spike time for each cell 
+			self.spike_dend_init = np.empty([1,len(cells)])	# minimum spike time for each cell
+			self.spike_dend_init_sec = np.empty([1,len(cells)])	# section where first spike occured
+			self.spike_dend_init_seg = np.empty([1,len(cells)])	# segment where first spike occured
+			self.spike_dend_init_cell = np.empty([1,len(cells)]) # keep track of cell number
+			# loop over cells
+			for cell_i,cell in enumerate(cells):
+				# for each cell list all dendritic spike times
+				spiket_dend = [spikes for spike_i,spikes in enumerate(self.spiket_dend[pol][0,:]) if self.cell_list_dend[pol][spike_i]==cell_dend]
+				# keep track of the index for in the full list of spike times
+				spikei_dend = [spike_i for spike_i,spikes in enumerate(self.spiket_dend[pol][0,:]) if self.cell_list_dend[pol][spike_i]==cell_dend]
+				# index in full list for this cell's minimum dendiritic spike time
+				spike_idx = spikei_dend[spiket_dend.index(min(spiket_dend))]
+				# store minimum spike time and keep track of section, segment, and cell number
+				self.spike_dend_init[1,cell_i] = min(spiket_dend)
+				self.spike_dend_init_sec[1,cell_i] = self.sec_list[pol][spike_idx]
+				self.spike_dend_init_seg[1,cell_i] = self.seg_list[pol][spike_idx]
+				self.spike_dend_init_cell[1,cell_i] = cell
 
 	def save_spikes(self,p):
 		with open(p['data_folder']+'spiket_soma_all_'+p['experiment']+'.pkl', 'wb') as output:

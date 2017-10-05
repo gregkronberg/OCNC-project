@@ -105,9 +105,13 @@ class Run():
 			cnt +=1
 			self.dend_rec.append([])
 			self.dend_arr.append([])
+			self.weight_rec.append([])
+			self.weight_arr.append([])
 			for sec_i,sec in enumerate(p['plot_sec_idx']):
 				self.dend_rec[cnt].append([])
 				self.dend_arr[cnt].append([])
+				self.weight_rec[cnt].append([])
+				self.weight_arr[cnt].append([])
 				for seg_i,seg in enumerate(p['plot_seg_idx'][sec_i]):
 					# check if segment exists
 					if seg <= self.cell1.dend_a_tuft[sec].nseg:
@@ -119,13 +123,6 @@ class Run():
 						self.dend_arr[cnt][sec_i].append([])
 						self.dend_rec[cnt][sec_i][seg_i].record(self.cell1.dend_a_tuft[sec](seg_loc)._ref_v)
 
-			# clopath weight update
-			self.weight_rec.append([])
-			self.weight_arr.append([])
-			for sec_i,sec in enumerate(p['plot_sec_idx']):
-				self.weight_rec[cnt].append([])
-				self.weight_arr[cnt].append([])
-				for seg_i,seg in enumerate(p['plot_seg_idx'][sec_i]):
 					if seg < len(self.cell1.syn_a_tuft_clopath[sec]):
 						self.weight_rec[cnt][sec_i].append(h.Vector())
 						self.weight_arr[cnt][sec_i].append([])
@@ -137,23 +134,20 @@ class Run():
 			# run simulation
 			h.run()
 
+			# store recording vectors as arrays
 			for a in range(len(self.dend_rec[cnt])):
 				for b in range(len(self.dend_rec[cnt][a])):
 					self.dend_arr[cnt][a][b] = np.array(self.dend_rec[cnt][a][b])
 					self.weight_arr[cnt][a][b] = np.array(self.weight_rec[cnt][a][b])
 			
-			# print np.array(self.dend_rec)[cnt][0][0][200]
 			# store data
 			self.data['t'].append(np.array(self.t_rec))
 			self.data['soma'].append(np.array(self.soma_rec))
 			self.data['field'].append(f)
 			self.data['field_color'].append(p['field_color'][f_i])	
+		
 		self.data['dend'] = self.dend_arr
 		self.data['weight'] = self.weight_arr
-
-		for a in range(len(self.data['dend'])):
-			print self.dend_rec[a][0][0][200]
-			print self.data['dend'][a][0][0][200]
 
 def save_data(data,p):	# save data
 	if os.path.isdir(p['data_folder']) is False:
