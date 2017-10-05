@@ -136,7 +136,7 @@ class exp_3:
 			'clopath_delay_steps': 1,
 			'clopath_tau_0':12, # time constant (ms) for low passed membrane potential for depression
 			'clopath_tau_r' : 30, # time constant (ms) for low pass filter presynaptic variable
-			'clopath_tau_y': 10, # time constant (ms) for low pass filter post membrane potential for potentiation
+			'clopath_tau_y': 20, # time constant (ms) for low pass filter post membrane potential for potentiation
 			'clopath_A_m':.0001, # depression magnitude parameter (mV^-1)
 			'clopath_A_p': .004, # amplitude for potentiation (mV^-2)
 			'clopath_tetam':-41, # depression threshold (mV)

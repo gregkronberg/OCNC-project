@@ -51,4 +51,4 @@ def exp_3(trials,weights):
 			run.save_data(sim.data,p)
 
 if __name__ =="__main__":
-	exp_3(trials=100,weights = [1])
+	exp_3(trials=200,weights = [1])

@@ -1,6 +1,7 @@
 """
 analysis
 """
+from __future__ import division
 import numpy as np
 from scipy import stats
 import matplotlib.pyplot as plt
@@ -9,6 +10,7 @@ import itertools as it
 import os
 import cPickle as pickle
 import param
+
 
 class Weights():
 	"""
@@ -96,9 +98,10 @@ class Spikes():
 	def __init__(self,p):
 		self.initialize_vectors(p)
 		self.group_spikes(p)
+		self.spike_start(p)
 		self.save_spikes(p)
 		self.plot_spike_hist_soma(self.spiket_soma,p)
-		self.plot_spike_hist_dend(self.spiket_dend,p)
+		self.plot_spike_hist_dend(self.spike_dend_init,p)
 
 	def initialize_vectors(self,p):
 		self.n_pol = len(p['field'])
@@ -109,6 +112,7 @@ class Spikes():
 		self.seg_list = [] # keep track of segments (same dimensions as spiket_dend)
 		self.cell_list_soma = []
 		self.cell_list_dend = []
+		self.win_list_soma = []
 		# loop over polarity
 		for pol in range(self.n_pol):
 			self.spiket_soma.append(np.empty([1,0]))
@@ -117,6 +121,7 @@ class Spikes():
 			self.seg_list.append([])
 			self.cell_list_soma.append([])
 			self.cell_list_dend.append([])
+			self.win_list_soma.append([])
 
 	def group_spikes(self,p):
 		cell_num = -1 	# track which cell number
@@ -131,37 +136,49 @@ class Spikes():
 				self.p = data['params']
 				self.n_act_seg = len(self.p['seg_list'])
 				self.measure_spikes(data,self.p,cell_num)
-				
+				self.cell_name.append(data_file)
 	def measure_spikes(self,data,p,cell_num=0):
+		# determine windows for spike time detection [window number][min max]
+		bursts = range(p['bursts'])
+		pulses = range(p['pulses'])
+		burst_freq = p['burst_freq']
+		pulse_freq = p['pulse_freq']
+		fs = 1./p['dt']
+		warmup = p['warmup']
+		# for each input pulse their is a list containing the window start and stop time [window number][start,stop]
+		window =  [[warmup*fs+(burst)*1000*fs/burst_freq+(pulse)*1000*fs/pulse_freq,warmup*fs+(burst)*1000*fs/burst_freq+(pulse+1)*1000*fs/pulse_freq] for burst in bursts for pulse in pulses]
+		
 		# detect spikes for individual neurons
 		for pol in range(self.n_pol):
+			
 			# detect soma spikes
-			self.soma_spikes = self.detect_spikes(np.array(data['soma'][pol]))
-			print self.soma_spikes
-			print self.soma_spikes.shape
-			print self.spiket_soma[pol].shape
+			self.soma_spikes = self.detect_spikes(np.array(data['soma'][pol]))['times']
 			if self.soma_spikes.size!=0:
+				
 				# add spike times to array
-				self.spiket_soma[pol] = np.append(self.spiket_soma[pol],self.soma_spikes,axis=1)
+				self.spiket_soma[pol] = np.append(self.spiket_soma[pol],self.soma_spikes/fs,axis=1)
 				# track cell number
-				for spike in self.soma_spikes:
+				for spike_i,spike in enumerate(self.soma_spikes[0]):
+					# detect the window that the spike occurred in, indexed by the onset time of the window
+					spike_soma_win = [win[0] for win in window if spike >= win[0] and spike < win[1] ]
 					self.cell_list_soma[pol].append(cell_num)
-			# loop over dendritic segments
+					self.win_list_soma[pol].append(spike_soma_win)
+			
+			# detect dendritic spikes and track location
 			cnt=-1
-			spiket_dend_track = np.empty([1,0])
 			sec_list_track = []
 			seg_list_track = []
 			for sec in range(len(data['dend'][pol])): # loop over sections
 				for seg in range(len(data['dend'][pol][sec])): # loop over segemnts
 					cnt+=1
 					# detect spikes
-					dend_spikes = self.detect_spikes(np.array(data['dend'][pol][sec][seg])) 
+					dend_spikes = self.detect_spikes(np.array(data['dend'][pol][sec][seg]))['times']
 					if dend_spikes.size!=0:
 						# add spike times to array
 						self.spiket_dend[pol] = np.append(self.spiket_dend[pol],dend_spikes,axis=1)
 						# spiket_dend_track = np.append(spiket_dend_track,dend_spikes,axis=1)
 						# for each spike store the section, segment, cell number in the appropriate list
-						for spike in dend_spikes:
+						for spike in dend_spikes[0,:]:
 							self.sec_list[pol].append(p['seg_idx'][sec])
 							self.seg_list[pol].append(p['seg_idx'][sec][seg])
 							self.cell_list_dend[pol].append(cell_num)
@@ -174,44 +191,55 @@ class Spikes():
 		pulses = range(p['pulses'])
 		burst_freq = p['burst_freq']
 		pulse_freq = p['pulse_freq']
+		fs = 1./p['dt']
 		warmup = p['warmup']
-		window =  [[warmup+(burst-1)/burst_freq+(pulse-1)/pulse_freq,warmup+(burst)/burst_freq+(pulse)/pulse_freq] for burst in bursts for pulse in pulses]
+		# for each input pulse their is a list containing the window start and stop time [window number][start,stop]
+		window =  [[warmup*fs+(burst)*1000*fs/burst_freq+(pulse)*1000*fs/pulse_freq,warmup*fs+(burst)*1000*fs/burst_freq+(pulse+1)*1000*fs/pulse_freq] for burst in bursts for pulse in pulses]
 
 		# numpy array for storing minumum spike time for each cell 
 		self.spike_dend_init = []	# minimum spike time for each cell
 		self.spike_dend_init_sec = []	# section where first spike occured
 		self.spike_dend_init_seg = []	# segment where first spike occured
 		self.spike_dend_init_cell = [] # keep track of cell number
+		self.spike_dend_init_win = [] # timing of presynaptic input 
 		# loop over polarities
 		for pol in range(self.n_pol):
 			# list all cells with a dendritic spike
 			cells = list(set(self.cell_list_dend[pol]))
 			# numpy array for storing minumum spike time for each cell 
-			self.spike_dend_init.append(np.empty([1,0]))	# minimum spike time for each cell
-			self.spike_dend_init_sec.append(np.empty([1,0]))	# section where first spike occured
-			self.spike_dend_init_seg.append(np.empty([1,0]))	# segment where first spike occured
-			self.spike_dend_init_cell.append(np.empty([1,0])) # keep track of cell number
+			self.spike_dend_init.append([])	# minimum spike time for each cell
+			self.spike_dend_init_sec.append([])	# section where first spike occured
+			self.spike_dend_init_seg.append([])	# segment where first spike occured
+			self.spike_dend_init_cell.append([]) # keep track of cell number
+			self.spike_dend_init_win.append([]) # keep track of cell number
 			# loop over cells
 			for cell_i,cell in enumerate(cells):
+				# print len(self.spiket_dend[pol][0,:])
+				# print len(self.cell_list_dend[pol])
 				# for each cell list all dendritic spike times
-				spiket_dend = [spikes for spike_i,spikes in enumerate(self.spiket_dend[pol][0,:]) if self.cell_list_dend[pol][spike_i]==cell_dend]
+				spiket_dend = [spikes for spike_i,spikes in enumerate(self.spiket_dend[pol][0,:]) if self.cell_list_dend[pol][spike_i]==cell]
 				# keep track of the index for in the full list of spike times
-				spikei_dend = [spike_i for spike_i,spikes in enumerate(self.spiket_dend[pol][0,:]) if self.cell_list_dend[pol][spike_i]==cell_dend]
+				spikei_dend = [spike_i for spike_i,spikes in enumerate(self.spiket_dend[pol][0,:]) if self.cell_list_dend[pol][spike_i]==cell]
 				# loop over spike windows
 				for win in window:
 					# return spikes for this cell that fit the window
-					spiket_dend_win = [spike for spike in spiket_dend if spike > win[0] and spike < win[1]]
+					spiket_dend_win = [spike for spike in spiket_dend if spike >= win[0] and spike < win[1]]
 					# keep track of indeces
-					spikei_dend_win = [spike for spike_i,spike in enumerate(spikei_dend) if spiket_dend[spike_i] > win[0] and spiket_dend[spike_i] < win[1]]
+					spikei_dend_win = [spike for spike_i,spike in enumerate(spikei_dend) if spiket_dend[spike_i] >= win[0] and spiket_dend[spike_i] < win[1]]
 					# check if spike was found
-					if spike found in this window
+					if spiket_dend_win:
+						# print min(spiket_dend_win)/fs
 						# index in full list for first spike in current time window in current cell
 						spike_idx = spikei_dend_win[spiket_dend_win.index(min(spiket_dend_win))]
 						# store minimum spike time and keep track of section, segment, and cell number
-						np.append(self.spike_dend_init[pol],min(spiket_dend_win),axis=1)
-						np.append(self.spike_dend_init_sec[pol], self.sec_list[pol][spike_idx], axis=1)
-						np.append(self.spike_dend_init_seg[pol], self.seg_list[pol][spike_idx], axis =1)
-						np.append(self.spike_dend_init_cell[pol], cell, axis=1)
+						self.spike_dend_init[pol].append(min(spiket_dend_win)/fs)
+						self.spike_dend_init_sec[pol].append(self.sec_list[pol][spike_idx])
+						self.spike_dend_init_seg[pol].append(self.seg_list[pol][spike_idx])
+						self.spike_dend_init_cell[pol].append(cell)
+						self.spike_dend_init_win[pol].append(win[0])
+			
+			self.spike_dend_init[pol] = np.array([self.spike_dend_init[pol]])
+			print self.spike_dend_init[pol].shape
 
 	def save_spikes(self,p):
 		with open(p['data_folder']+'spiket_soma_all_'+p['experiment']+'.pkl', 'wb') as output:
@@ -221,30 +249,40 @@ class Spikes():
 			pickle.dump(self.spiket_dend, output,protocol=pickle.HIGHEST_PROTOCOL)
 
 	def plot_spike_hist_soma(self,data,p):
-		warmup = p['warmup']/p['dt']
-		finish = p['tstop']/p['dt']
-		bins = np.linspace(warmup,finish ,(finish-warmup)/2)
+		warmup = p['warmup']
+		finish = p['tstop']
+		bins = np.linspace(warmup,finish ,(finish-warmup)/p['dt'])
 		self.fig_spike_hist_soma = plt.figure()
 		for pol in range(self.n_pol):
 			plt.hist(data[pol][0,:],bins=bins,color = p['field_color'][pol])
+		plt.title('Somatic spike time histogram')
+		plt.xlabel('spike onset (ms)')
+		plt.ylabel('count')
 		# save figure
 		self.fig_spike_hist_soma.savefig(p['data_folder']+'fig_spike_hist_soma'+'.png', dpi=250)
 		plt.close(self.fig_spike_hist_soma)
 
 	def plot_spike_hist_dend(self,data,p):
-		warmup = p['warmup']/p['dt']
-		finish = p['tstop']/p['dt']
-		bins = np.linspace(warmup,finish ,(finish-warmup)/2)
+		warmup = p['warmup']
+		finish = p['tstop']
+		bins = np.linspace(warmup,finish ,(finish-warmup)/p['dt'])
 		self.fig_spike_hist_dend = plt.figure()
 		for pol in range(self.n_pol):
 			plt.hist(data[pol][0,:],bins=bins,color = p['field_color'][pol])
+		plt.title('Dendritic spike time histogram')
+		plt.xlabel('spike onset (ms)')
+		plt.ylabel('count')
 		self.fig_spike_hist_dend.savefig(p['data_folder']+'fig_spike_hist_dend'+'.png', dpi=250)
 		plt.close(self.fig_spike_hist_dend)
 
-	def detect_spikes(self,data,threshold=0):
+	def detect_spikes(self,data,threshold=-20):
+		spike_times = np.asarray(np.where(np.diff(np.sign(data-threshold))>0))
+		spike_train = np.zeros([1,len(data)])
+		for time in spike_times:
+			spike_train[0,time] = 1 
 		# detect indeces where vector crosses threshold in the positive direction
-		return np.asarray(np.where(np.diff(np.sign(data-threshold))>0))
-		# loop over section
+		return {'times':spike_times,'train':spike_train}
+		
 
 class Voltage():
 	def __init__(self,p):
@@ -333,8 +371,8 @@ def exp_2_spike_analysis():
 		pickle.dump(data_all, output,protocol=pickle.HIGHEST_PROTOCOL)
 
 if __name__ =="__main__":
-	Weights(param.exp_3().params)
-	# Spikes(param.exp_3().params)
+	# Weights(param.exp_3().params)
+	Spikes(param.exp_3().params)
 	# Voltage(param.exp_3().params)
 	# exp_2_spike_analysis()
 	# plot_spikes('data_all_exp_2'+'.pkl')
