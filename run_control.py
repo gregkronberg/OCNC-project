@@ -32,7 +32,7 @@ def exp_2(num_secs,trials,weights):
 				run.plot_sections(data_folder+'data_'+p['experiment']+'_syn_'+str(len(p['sec_idx']))+
 					'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])+'.pkl')
 
-def exp_3(trials=1,weights = [.0018,.0002]):
+def exp_3(trials=1,weights = [[.0018,.0002]]):
 	# loop over trials
 	for tri in range(trials):
 		# loop over weights
@@ -65,4 +65,4 @@ def exp_3(trials=1,weights = [.0018,.0002]):
 			run.save_data(sim.data,p)
 
 if __name__ =="__main__":
-	exp_3(trials=2,weights = [.0018,.0002])
+	exp_3(trials=1,weights = [[.0018,.0002]])

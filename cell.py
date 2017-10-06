@@ -88,7 +88,9 @@ class Cell_Migliore_2005:
 					sec.ek = p['ek']						# potassium reversal potential 
 
 				# dendrites
-				elif (tree_key == 'basal') or (tree_key == 'apical_trunk') or (tree_key == 'apical_tuft'):
+				elif ((tree_key == 'basal') or 
+				(tree_key == 'apical_trunk') or 
+				(tree_key == 'apical_tuft')):
 					# active biophysics (parameters: Migliore 2005)
 				    sec.insert('hd')
 				    sec.ghdbar_hd = p['ghd']		# h-current
@@ -99,7 +101,7 @@ class Cell_Migliore_2005:
 				    sec.insert('kap')
 				    sec.gkabar_kap = 0			# a-type potassium proximal
 				    sec.insert('kad')
-				   	sec.gkabar_kad = 0			# a-type potassium distal
+				    sec.gkabar_kad = 0			# a-type potassium distal
 				    sec.ena = p['ena']			# sodium reversal potential 
 				    sec.ek = p['ek']				# potassium reversal potential 
 
@@ -124,12 +126,12 @@ class Cell_Migliore_2005:
 
 				        # loop over synapse types
 				        for syn_key,syn in self.syns.iteritems():
-				        	if syn_key == 'ampa'
+				        	if syn_key == 'ampa':
 				        		syn[sec_i].append(h.Exp2Syn(sec(seg.x)))
 				        		syn[sec_i][seg_i].tau1 = p['tau1_ampa']
 				        		syn[sec_i][seg_i].tau2 = p['tau2_nmda']
 				        		syn[sec_i][seg_i].i = p['i_ampa']
-				        	elif syn_key == nmda:
+				        	elif syn_key == 'nmda':
 				        		syn[sec_i].append(h.Exp2SynNMDA(sec(seg.x)))
 				        		syn[sec_i][seg_i].tau1 = p['tau1_nmda']
 				        		syn[sec_i][seg_i].tau2 = p['tau2_nmda']
@@ -161,6 +163,7 @@ class Syn_act:
 					for syn_stim_i,syn_stim in enumerate(stim):
 						self.nc[syn_key][sec_i][seg_i].append(
 							h.NetCon(syn_stim,syn[sec][seg],0,0,p['w_list'][sec_i][seg_i]))
+
 # set procedure if called as a script
 if __name__ == "__main__":
 	cell_1 = Cell_Migliore_2005()

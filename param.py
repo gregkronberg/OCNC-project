@@ -87,7 +87,7 @@ class exp_3:
 		# load cell
 		self.cell = cell.Cell_Migliore_2005()
 		# choose active segments 
-		self.segs = self.choose_seg_rand(syn_list = self.cell.syn_a_tuft_ampa, syn_frac=self.syn_frac)
+		self.segs = self.choose_seg_rand(syn_list = self.cell.syns['apical_tuft']['ampa'], syn_frac=self.syn_frac)
 		# set weights for active segments
 		self.weights = self.set_weights(seg_idx=choose_seg['seg_idx'], w_mean=w_mean, w_std = w_std, w_rand=w_rand)
 	
@@ -102,8 +102,8 @@ class exp_3:
 			'w_rand':w_rand,
 			'w_std':w_std,
 			'w_mean':w_mean, # mean synaptic weight (microsiemens or micro-ohms)
-			'tree':'a_tuft'
-			'w_list':self.weights
+			'tree':'apical_tuft',
+			'w_list':self.weights,
 			'sec_list':self.segs['sec_list'],
 			'seg_list':self.segs['seg_list'],
 			'sec_idx': self.segs['sec_idx'],
@@ -166,7 +166,7 @@ class exp_3:
 
 			}
 
-	def choose_seg_rand(self,syn_list = self.cell.syn_a_tuft_ampa, syn_frac=self.syn_frac):
+	def choose_seg_rand(self, syn_list, syn_frac):
 		"""
 		input a lis of synapses and a fraction of them to choose, returns lists of chosen sections and segments
 		"""
@@ -196,7 +196,7 @@ class exp_3:
 		'sec_idx':sec_idx,
 		'seg_idx':seg_idx}
 
-	def set_weights(self,w_mean=.0018,w_std=.0002,seg_idx,w_rand=True):
+	def set_weights(self, seg_idx, w_mean=.0018, w_std=.0002, w_rand=True):
 		w_list = []
 		# loop over sections
 		for sec_i,sec in enumerate(seg_idx):

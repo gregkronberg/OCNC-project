@@ -30,9 +30,13 @@ class Run():
 
 		# create cell
 		self.cell1 = cell.Cell_Migliore_2005()
+		self.update_clopath(syns=self.cell1.syns['apical_tuft']['clopath'])
+		self.activate_synapses(p)
+		self.recording_vectors(p)
+		self.run_sims(p)
 
 	# update clopath parameters
-	def update_clopath(self,syns = self.cell1.syns['clopath']):
+	def update_clopath(self,syns):
 		for sec_i,sec in enumerate(syn_list):
 			for seg_i,seg in enumerate(syn_list[sec_i]):
 				syns[sec_i][seg_i].delay_steps = p['clopath_delay_steps']
@@ -63,7 +67,7 @@ class Run():
 		h.dt = p['dt']
 		h.tstop = p['tstop']
 
-	def recording_vectors(self,p)
+	def recording_vectors(self,p):
 		# set up recording vectors
 		self.rec =  {}
 		self.data = {}
@@ -88,9 +92,9 @@ class Run():
 					self.rec[tree_key+'_v'][sec_i][seg_i].record(
 						tree[sec_i][seg_i]._ref_v)
 					
-					if (tree_key == 'basal') or 
+					if ((tree_key == 'basal') or 
 					(tree_key == 'apical_trunk') or 
-					(tree_key == 'apical_tuft'):
+					(tree_key == 'apical_tuft')):
 						
 						# record clopath weight
 						self.rec[tree_key+'_w'][sec_i].append(h.Vector())
@@ -103,6 +107,7 @@ class Run():
 		# dendrite voltage (sections chosen with 'plot_sec_idx' in parameter module)
 		# plot_sec_idx is a list organized as [sections]
 		# plot_seg_idx is [sections][segments]
+
 	def run_sims(self,p):
 		# loop over dcs fields
 		for f_i,f in enumerate(p['field']):
@@ -129,9 +134,9 @@ class Run():
 					for seg_i,seg in enumerate(sec):
 						self.data[tree_key+'_v'][f_i][sec_i].append(np.array(self.rec_v[tree_key][sec_i][seg_i]))
 						
-						if (tree_key == 'basal') or 
+						if ((tree_key == 'basal') or 
 						(tree_key == 'apical_trunk') or 
-						(tree_key == 'apical_tuft'):
+						(tree_key == 'apical_tuft')):
 							self.data[tree_key+'_w'][f_i][sec_i].append(np.array(self.rec_w[tree_key][sec_i][seg_i]))
 
 			self.data['t'].append(np.array(self.rec['t']))
