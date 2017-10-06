@@ -136,7 +136,7 @@ class Spikes():
 				self.p = data['params']
 				self.n_act_seg = len(self.p['seg_list'])
 				self.measure_spikes(data,self.p,cell_num)
-				self.cell_name.append(data_file)
+				
 	def measure_spikes(self,data,p,cell_num=0):
 		# determine windows for spike time detection [window number][min max]
 		bursts = range(p['bursts'])
@@ -304,78 +304,11 @@ class Voltage():
 				plt.close(self.fig_dend_trace)
 
 
-
-
-def exp_2_spike_analysis():
-	data_all = {
-		'spike_t_soma':[],
-		'spike_t_dend':[],
-		'n_input':[],
-		'field':[],
-		'weight':[],
-	}
-	dpath = 'Data/'
-	data_list  = os.listdir(dpath)
-	for data_name in data_list:
-		data_pkl = open(dpath+data_name, 'rb')
-		data = pickle.load(data_pkl)
-		n_exp = len(data['soma'])
-		for a in range(n_exp):
-			data_soma = data['soma'][a]
-			soma_cross = np.where(np.diff(np.sign(data_soma)))[0]
-			if len(soma_cross)>0:
-				soma_cross_min = soma_cross[0]
-			else:
-				soma_cross_min=0
-			print soma_cross_min
-			n_sec = len(data['dend'][a])
-			dend_cross = []
-			dend_cross_sec=[]
-			dend_cross_sec_min=[]
-			for b in range(n_sec):
-				data_dend = data['dend'][a][b]
-				dend_cross_sec.append(np.where(np.diff(np.sign(data_dend)))[0])
-				if len(dend_cross_sec[b])>0:
-					dend_cross_sec_min.append(dend_cross_sec[b][0])
-				else:
-					dend_cross_sec_min.append(0)
-			dend_cross_sec_min_np = np.array(dend_cross_sec_min)
-			if np.count_nonzero(dend_cross_sec_min_np)>0:
-				dend_cross_min = np.min(dend_cross_sec_min_np[np.nonzero(dend_cross_sec_min_np)])
-			else:
-				dend_cross_min = 0
-			data_all['spike_t_soma'].append(soma_cross_min)
-			data_all['spike_t_dend'].append(dend_cross_min)
-			data_all['n_input'].append(n_sec)
-			data_all['field'].append(data['field'][a])
-			data_all['weight'].append(data['params']['w_ampa'])
-
-	data_all['spike_t_soma'] = np.array(data_all['spike_t_soma'])
-	data_all['spike_t_dend']=np.array(data_all['spike_t_dend'])
-	data_all['n_input']=np.array(data_all['n_input'])
-	data_all['field']=np.array(data_all['field'])
-	data_all['weight']=np.array(data_all['weight'])
-	data_all['spike_source']=[]
-	for a in range(len(data_all['spike_t_soma'])):
-		if data_all['spike_t_soma'][a]!=0:
-			if data_all['spike_t_soma'][a]<=data_all['spike_t_dend'][a]:
-				data_all['spike_source'].append(1)
-			else:
-				data_all['spike_source'].append(0)
-		else:
-			data_all['spike_source'].append(-1)
-	data_all['spike_source']=np.array(data_all['spike_source'])
-	
-	with open('data_all_exp_2'+'.pkl', 'wb') as output:
-	# 
-		pickle.dump(data_all, output,protocol=pickle.HIGHEST_PROTOCOL)
-
 if __name__ =="__main__":
 	# Weights(param.exp_3().params)
 	Spikes(param.exp_3().params)
 	# Voltage(param.exp_3().params)
-	# exp_2_spike_analysis()
-	# plot_spikes('data_all_exp_2'+'.pkl')
+
 
 
 

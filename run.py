@@ -28,105 +28,84 @@ class Run():
 	"""
 	def __init__(self,p):
 
-		# initialize data
-		self.data = {'t':[],
-			'soma':[],
-			'dend':[],
-			'weight':[],
-			'field':[],
-			'field_color':[],
-			'params':p,
-				}
-
-
 		# create cell
 		self.cell1 = cell.Cell_Migliore_2005()
 
-		# update clopath parameters
-		for a in range(len(self.cell1.syn_a_tuft_clopath)):
-			for b in range(len(self.cell1.syn_a_tuft_clopath[a])):
-				self.cell1.syn_a_tuft_clopath[a][b].delay_steps = p['clopath_delay_steps']
-				self.cell1.syn_a_tuft_clopath[a][b].tau_0 = p['clopath_tau_0']
-				self.cell1.syn_a_tuft_clopath[a][b].tau_r = p['clopath_tau_r']
-				self.cell1.syn_a_tuft_clopath[a][b].tau_y = p['clopath_tau_y']
-				self.cell1.syn_a_tuft_clopath[a][b].A_m = p['clopath_A_m']
-				self.cell1.syn_a_tuft_clopath[a][b].A_p = p['clopath_A_p']
-				self.cell1.syn_a_tuft_clopath[a][b].tetam = p['clopath_tetam']
-				self.cell1.syn_a_tuft_clopath[a][b].tetap = p['clopath_tetap']
+	# update clopath parameters
+	def update_clopath(self,syns = self.cell1.syns['clopath']):
+		for sec_i,sec in enumerate(syn_list):
+			for seg_i,seg in enumerate(syn_list[sec_i]):
+				syns[sec_i][seg_i].delay_steps = p['clopath_delay_steps']
+				syns[sec_i][seg_i].tau_0 = p['clopath_tau_0']
+				syns[sec_i][seg_i].tau_r = p['clopath_tau_r']
+				syns[sec_i][seg_i].tau_y = p['clopath_tau_y']
+				syns[sec_i][seg_i].A_m = p['clopath_A_m']
+				syns[sec_i][seg_i].A_p = p['clopath_A_p']
+				syns[sec_i][seg_i].tetam = p['clopath_tetam']
+				syns[sec_i][seg_i].tetap = p['clopath_tetap']
 
-		# activate synapses
-		self.tuft_act = []	# list of activations (each burst x subtree combination gets an entry)
-		for syn_stim_i,syn_stim in enumerate(stims.tbs(bursts=p['bursts']).stim):
-			# randomize weights
-			if p['w_rand']:
-			# activate synapses
-				self.tuft_act.append(cell.Syn_act(syn_stim,self.cell1.syn_a_tuft_ampa,self.cell1.syn_a_tuft_nmda,self.cell1.syn_a_tuft_clopath,p['sec_idx'],p['seg_idx'],np.random.normal(loc=p['w_ampa'],scale=p['w_std']),np.random.normal(loc=p['w_nmda'],scale=p['w_std'])))
-			# dont randomize weights
-			else:
-				# activate synapses
-				self.tuft_act.append(cell.Syn_act(syn_stim,self.cell1.syn_a_tuft_ampa,self.cell1.syn_a_tuft_nmda,self.cell1.syn_a_tuft_clopath,p['sec_idx'],p['seg_idx'],p['w_ampa'],p['w_nmda']))
+	# activate synapses
+	def activate_synapses(self,p):
+		self.stim = stims.tbs(bursts=p['bursts']).stim
+		self.nc = cell.Syn_act(p=p, syns=self.cell1.syns, stim=self.stim)
 
-
+	def shape_plot(self,p):
 		# highlight active sections
 		self.shapeplot = h.PlotShape()
 		
 		# create section list of active sections
 		self.sl = h.SectionList()    # secetion list of included sections
-		for section in p['sec_idx']:
-			self.sl.append(sec = self.cell1.dend_a_tuft[section])
-			self.shapeplot.color(2,sec = self.cell1.dend_a_tuft[section])
+		for seec_i,sec in enumerate(p['seg_idx']):
+			self.sl.append(sec=self.cell1.geo[p['tree']][sec])
+			self.shapeplot.color(2, sec=self.cell1.geo[p['tree']][sec])
 		
 		# run time
 		h.dt = p['dt']
 		h.tstop = p['tstop']
 
+	def recording_vectors(self,p)
 		# set up recording vectors
-		# time
-		self.t_rec = h.Vector()
-		self.t_rec.record(h._ref_t)
+		self.rec =  {}
+		self.data = {}
 		
-		# soma voltage
-		self.soma_rec = h.Vector()
-		self.soma_rec.record(self.cell1.soma(0.5)._ref_v)
+		# loop over trees
+		for tree_key, tree in self.cell1.geo.iteritems():
+			self.rec[tree_key+'_v'] = []
+			self.rec[tree_key+'w'] = []
+			self.data[tree_key + '_v'] = []
+			self.data[tree_key + '_w'] = []
+			
+			# loop over sections
+			for sec_i,sec in enumerate(tree):
+				self.rec[tree_key+'_v'].append([])
+				self.rec_w[tree_key+'_w'] = []
+				
+				# loop over segments
+				for seg_i,seg in enumerate(tree[sec_i]):
+					
+					# record voltage
+					self.rec[tree_key+'_v'][sec_i].append(h.Vector())
+					self.rec[tree_key+'_v'][sec_i][seg_i].record(
+						tree[sec_i][seg_i]._ref_v)
+					
+					if (tree_key == 'basal') or 
+					(tree_key == 'apical_trunk') or 
+					(tree_key == 'apical_tuft'):
+						
+						# record clopath weight
+						self.rec[tree_key+'_w'][sec_i].append(h.Vector())
+						self.rec_w[tree_key+'_w'][sec_i][seg_i].record(
+							self.cell1.syns[tree_key]['clopath'][sec_i][seg_i]._ref_gbar)
+		# time
+		self.data['t'] = []
+		self.rec['t'] = h.Vector().record(h._ref_t)
 		
 		# dendrite voltage (sections chosen with 'plot_sec_idx' in parameter module)
 		# plot_sec_idx is a list organized as [sections]
 		# plot_seg_idx is [sections][segments]
-		
-		
+	def run_sims(self,p):
 		# loop over dcs fields
-		cnt=-1
-		shapeplot = []
-		self.dend_rec=[]
-		self.weight_rec=[]
-		self.dend_arr=[]
-		self.weight_arr=[]
 		for f_i,f in enumerate(p['field']):
-			cnt +=1
-			self.dend_rec.append([])
-			self.dend_arr.append([])
-			self.weight_rec.append([])
-			self.weight_arr.append([])
-			for sec_i,sec in enumerate(p['plot_sec_idx']):
-				self.dend_rec[cnt].append([])
-				self.dend_arr[cnt].append([])
-				self.weight_rec[cnt].append([])
-				self.weight_arr[cnt].append([])
-				for seg_i,seg in enumerate(p['plot_seg_idx'][sec_i]):
-					# check if segment exists
-					if seg <= self.cell1.dend_a_tuft[sec].nseg:
-
-						# determine relative segment location in (0-1) 
-						seg_loc = (seg+1)/(self.cell1.dend_a_tuft[sec].nseg+1)
-						# print cnt
-						self.dend_rec[cnt][sec_i].append(h.Vector())
-						self.dend_arr[cnt][sec_i].append([])
-						self.dend_rec[cnt][sec_i][seg_i].record(self.cell1.dend_a_tuft[sec](seg_loc)._ref_v)
-
-					if seg < len(self.cell1.syn_a_tuft_clopath[sec]):
-						self.weight_rec[cnt][sec_i].append(h.Vector())
-						self.weight_arr[cnt][sec_i].append([])
-						self.weight_rec[cnt][sec_i][seg_i].record(self.cell1.syn_a_tuft_clopath[sec][seg]._ref_gbar)
 
 			# insert extracellular field
 			stims.dcs(cell=0,field_angle=p['field_angle'],intensity=f)
@@ -135,26 +114,40 @@ class Run():
 			h.run()
 
 			# store recording vectors as arrays
-			for a in range(len(self.dend_rec[cnt])):
-				for b in range(len(self.dend_rec[cnt][a])):
-					self.dend_arr[cnt][a][b] = np.array(self.dend_rec[cnt][a][b])
-					self.weight_arr[cnt][a][b] = np.array(self.weight_rec[cnt][a][b])
-			
-			# store data
-			self.data['t'].append(np.array(self.t_rec))
-			self.data['soma'].append(np.array(self.soma_rec))
-			self.data['field'].append(f)
-			self.data['field_color'].append(p['field_color'][f_i])	
-		
-		self.data['dend'] = self.dend_arr
-		self.data['weight'] = self.weight_arr
+			# loop over trees
+			for tree_key,tree in self.rec_v.iteritems():
+				# add list for each field polarity
+				self.data[tree_key+'_v'].append([])
+				self.data[tree_key+'_w'].append([])
+				
+				# loop over sections
+				for sec_i,sec in enumerate(tree):
+					self.data[tree_key+'_v'][f_i].append([])
+					self.data[tree_key+'_w'][f_i].append([])
+					
+					# loop over segments
+					for seg_i,seg in enumerate(sec):
+						self.data[tree_key+'_v'][f_i][sec_i].append(np.array(self.rec_v[tree_key][sec_i][seg_i]))
+						
+						if (tree_key == 'basal') or 
+						(tree_key == 'apical_trunk') or 
+						(tree_key == 'apical_tuft'):
+							self.data[tree_key+'_w'][f_i][sec_i].append(np.array(self.rec_w[tree_key][sec_i][seg_i]))
 
-def save_data(data,p):	# save data
+			self.data['t'].append(np.array(self.rec['t']))
+		self.data['p'] = p
+
+def save_data(data):	# save data
+	p = data['p']
 	if os.path.isdir(p['data_folder']) is False:
 		os.mkdir(p['data_folder'])
 
-	with open(p['data_folder']+'data_'+p['experiment']+'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])
-		+'_synfrac_'+str(p['syn_frac'])+'.pkl', 'wb') as output:
+	with open(p['data_folder']+
+		'data_'+p['experiment']+
+		'_trial_'+str(p['trial'])+
+		'_weight_'+str(p['w_mean'])
+		+'_synfrac_'+str(p['syn_frac'])+
+		'.pkl', 'wb') as output:
 
 		pickle.dump(data, output,protocol=pickle.HIGHEST_PROTOCOL)
 

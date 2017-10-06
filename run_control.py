@@ -14,6 +14,7 @@ import numpy as np
 import param
 import run
 import time
+import uuid
 h.load_file("stdrun.hoc")
 
 
@@ -31,24 +32,37 @@ def exp_2(num_secs,trials,weights):
 				run.plot_sections(data_folder+'data_'+p['experiment']+'_syn_'+str(len(p['sec_idx']))+
 					'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])+'.pkl')
 
-def exp_3(trials,weights):
+def exp_3(trials=1,weights = [.0018,.0002]):
 	# loop over trials
 	for tri in range(trials):
 		# loop over weights
 		for w in weights:
 			# choose fraction of synapses to be activated
 			syn_frac = np.random.normal(loc=.4, scale=.1) # chosen from gaussian
+			
 			# load rest of parameters from parameter module
-			p = param.exp_3(syn_frac=syn_frac).params
+			p = param.exp_3(syn_frac=syn_frac, w_mean=w[0], w_std=w[1], w_rand=True, exp='exp_3').p
+			
+			# store trial number
 			p['trial']=tri
-			p['w_ampa']=w*p['w_ampa']
-			p['w_nmda']=w*p['w_nmda']
-			p['w_rand']=True
-			start = time.time() # start timer
-			sim = run.Run(p)	# run simulation
-			end = time.time() # end timer
-			print 'trial'+ str(tri) + ' duration:' + str(end -start) # print simulation time
+			
+			# create unique identifier for each trial
+			p['trial_id'] = str(uuid.uuid4())
+			
+			# start timer
+			start = time.time() 
+			
+			# run simulation
+			sim = run.Run(p)	
+
+			# end timer
+			end = time.time() 
+
+			# print trial and simulation time
+			print 'trial'+ str(tri) + ' duration:' + str(end -start) 
+			
+			# save data for eahc trial
 			run.save_data(sim.data,p)
 
 if __name__ =="__main__":
-	exp_3(trials=200,weights = [1])
+	exp_3(trials=2,weights = [.0018,.0002])
