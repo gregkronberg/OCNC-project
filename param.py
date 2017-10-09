@@ -178,7 +178,6 @@ class exp_3:
 		# list of active sections (contains duplicates)
 		sec_list = [segs_all[a][0] for a in segs_choose]
 		
-		print sec_list
 		# list of active segments
 		seg_list = [segs_all[a][1] for a in segs_choose]
 

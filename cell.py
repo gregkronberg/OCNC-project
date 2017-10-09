@@ -165,8 +165,6 @@ class Syn_act:
 						for seg_i,seg in enumerate(p['seg_idx'][sec_i]):
 							self.nc[tree_key][syntype_key][sec_i].append([])
 
-							print tree_key,syntype_key
-							print sec,seg,len(syns[tree_key][syntype_key])
 							# loop over stimulation bursts
 							for syn_stim_i,syn_stim in enumerate(stim):
 								self.nc[tree_key][syntype_key][sec_i][seg_i].append(

@@ -22,8 +22,8 @@ class Weights():
 		self.n_pol = len(p['field'])
 		self.group_dw(p)
 		self.save_dw(p)
-		self.plot_dw_all(p,self.w_end)
-		self.plot_dw_mean(p,self.w_end)
+		self.plot_dw_all(p,self.w_end_all)
+		self.plot_dw_mean(p,self.w_end_all)
 
 	def group_dw(self,p):
 		# arrays for storing all weight changes across neurons
@@ -37,11 +37,13 @@ class Weights():
 				pkl_file = open(p['data_folder']+data_file, 'rb')
 				data = pickle.load(pkl_file)
 
-				self.p = data['params']
+				self.p = data['p']
 				
 				self.n_act_seg = len(self.p['seg_list'])
+				
 				# measure weight changes for individual neuron
 				self.measure_dw(data)
+				
 				# add individual neuron to the group
 				self.w_end_all = np.append(self.w_end_all,self.w_end,axis=1)
 				self.w_start_all = np.append(self.w_start_all,self.w_start,axis=1)
@@ -53,17 +55,20 @@ class Weights():
 
 		# find active synapses (all recorded segments were active)
 		# measure weight change at each active synapse
-		for a in range(len(data['weight'])): # loop fields
-			cnt = -1
-			for b in range(len(data['weight'][a])): # loop over sections
-				for c in range(len(data['weight'][a][b])): # loop over segemnts
-					cnt+=1
-					self.w_end[a,cnt] = data['weight'][a][b][c][-1]
-					self.w_start[a,cnt] = data['weight'][a][b][c][0]
+
+		for tree_key,tree in data.iteritems():
+			if (data['p']['tree'] in tree_key) and ('_w' in tree_key):
+				for f_i,f in enumerate(data['p']['field']):
+					cnt = -1
+					for sec_i,sec in enumerate(data['p']['sec_idx']):
+						for seg_i,seg in enumerate(data['p']['seg_idx'][sec_i]):
+							cnt += 1
+							self.w_end[f_i,cnt] = data[tree_key][f_i][sec][seg][-1]
+							self.w_start[f_i,cnt] = data[tree_key][f_i][sec][seg][0]
 
 	def save_dw(self,p):
 		with open(p['data_folder']+'dw_all_'+p['experiment']+'.pkl', 'wb') as output:
-			pickle.dump(self.w_end, output,protocol=pickle.HIGHEST_PROTOCOL)
+			pickle.dump(self.w_end_all, output,protocol=pickle.HIGHEST_PROTOCOL)
 
 	def plot_dw_all(self,p,dw):
 		# create figure
@@ -113,6 +118,7 @@ class Spikes():
 		self.cell_list_soma = []
 		self.cell_list_dend = []
 		self.win_list_soma = []
+		self.win_list_dend = []
 		# loop over polarity
 		for pol in range(self.n_pol):
 			self.spiket_soma.append(np.empty([1,0]))
@@ -122,6 +128,7 @@ class Spikes():
 			self.cell_list_soma.append([])
 			self.cell_list_dend.append([])
 			self.win_list_soma.append([])
+			self.win_list_dend.append([])
 
 	def group_spikes(self,p):
 		cell_num = -1 	# track which cell number
@@ -133,57 +140,62 @@ class Spikes():
 				pkl_file = open(p['data_folder']+data_file, 'rb')
 				data = pickle.load(pkl_file)
 				# get parameters from specific experiment
-				self.p = data['params']
+				self.p = data['p']
 				self.n_act_seg = len(self.p['seg_list'])
 				self.measure_spikes(data,self.p,cell_num)
-				
-	def measure_spikes(self,data,p,cell_num=0):
+
+	def spike_window(self,p):
 		# determine windows for spike time detection [window number][min max]
 		bursts = range(p['bursts'])
 		pulses = range(p['pulses'])
 		burst_freq = p['burst_freq']
 		pulse_freq = p['pulse_freq']
-		fs = 1./p['dt']
+		nrn_fs = 1000.
+		fs = nrn_fs/p['dt']
 		warmup = p['warmup']
 		# for each input pulse their is a list containing the window start and stop time [window number][start,stop]
-		window =  [[warmup*fs+(burst)*1000*fs/burst_freq+(pulse)*1000*fs/pulse_freq,warmup*fs+(burst)*1000*fs/burst_freq+(pulse+1)*1000*fs/pulse_freq] for burst in bursts for pulse in pulses]
+		return [[warmup*fs+(burst)*fs/burst_freq+(pulse)*fs/pulse_freq,warmup*fs+(burst)*fs/burst_freq+(pulse+1)*fs/pulse_freq] for burst in bursts for pulse in pulses]
+
+	def measure_spikes(self,data,p,cell_num=0):
+		# nrn_fs = 1000. # conversion from seconds to miliseconds
+		# fs = nrn_fs/p['dt'] # sampling rate in samples/second
+		window  = self.spike_window(p) # list of spike windows [window #][start,stop]
 		
 		# detect spikes for individual neurons
 		for pol in range(self.n_pol):
 			
 			# detect soma spikes
-			self.soma_spikes = self.detect_spikes(np.array(data['soma'][pol]))['times']
+			self.soma_spikes = self.detect_spikes(data['soma_v'][pol][0][0])['times']
 			if self.soma_spikes.size!=0:
 				
 				# add spike times to array
-				self.spiket_soma[pol] = np.append(self.spiket_soma[pol],self.soma_spikes/fs,axis=1)
+				self.spiket_soma[pol] = np.append(self.spiket_soma[pol],self.soma_spikes*p['dt'],axis=1)
+				
 				# track cell number
-				for spike_i,spike in enumerate(self.soma_spikes[0]):
+				for spike_i,spike in enumerate(self.soma_spikes[0,:]):
 					# detect the window that the spike occurred in, indexed by the onset time of the window
-					spike_soma_win = [win[0] for win in window if spike >= win[0] and spike < win[1] ]
+					spike_soma_win = [win[0] for win in window if (spike >= win[0]) and (spike < win[1]) ]
 					self.cell_list_soma[pol].append(cell_num)
 					self.win_list_soma[pol].append(spike_soma_win)
 			
 			# detect dendritic spikes and track location
 			cnt=-1
-			sec_list_track = []
-			seg_list_track = []
-			for sec in range(len(data['dend'][pol])): # loop over sections
-				for seg in range(len(data['dend'][pol][sec])): # loop over segemnts
+			for sec_i,sec in enumerate(data[p['tree']+'_v'][pol]): # loop over sections
+				for seg_i,seg in enumerate(data[p['tree']+'_v'][pol][sec_i]): # loop over segemnts
 					cnt+=1
 					# detect spikes
-					dend_spikes = self.detect_spikes(np.array(data['dend'][pol][sec][seg]))['times']
+					dend_spikes = self.detect_spikes(np.array(data[p['tree']+'_v'][pol][sec_i][seg_i]))['times']
 					if dend_spikes.size!=0:
 						# add spike times to array
 						self.spiket_dend[pol] = np.append(self.spiket_dend[pol],dend_spikes,axis=1)
 						# spiket_dend_track = np.append(spiket_dend_track,dend_spikes,axis=1)
 						# for each spike store the section, segment, cell number in the appropriate list
 						for spike in dend_spikes[0,:]:
-							self.sec_list[pol].append(p['seg_idx'][sec])
-							self.seg_list[pol].append(p['seg_idx'][sec][seg])
+							spike_dend_win = [win[0] for win in window if (spike >= win[0]) and (spike < win[1]) ]
+							self.sec_list[pol].append(sec_i)
+							self.seg_list[pol].append(seg_i)
 							self.cell_list_dend[pol].append(cell_num)
-							sec_list_track.append(p['seg_idx'][sec])
-							seg_list_track.append(p['seg_idx'][sec][seg])
+							self.win_list_dend[pol].append(spike_dend_win)
 
 	def spike_start(self,p):
 		# determine windows for spike time detection [window number][min max]
@@ -283,7 +295,6 @@ class Spikes():
 		# detect indeces where vector crosses threshold in the positive direction
 		return {'times':spike_times,'train':spike_train}
 		
-
 class Voltage():
 	def __init__(self,p):
 		self.n_pol = len(p['field'])
@@ -297,17 +308,16 @@ class Voltage():
 				data = pickle.load(pkl_file)
 				self.fig_dend_trace = plt.figure()
 				for pol in range(self.n_pol):
-					print data['dend'][pol][0][0][200]
-					plt.plot(data['t'][pol],data['dend'][pol][10][0],color = p['field_color'][pol])
+					print len(data['t'])
+					plt.plot(data['t'][pol],data[p['tree']+'_v'][pol][10][0],color = p['field_color'][pol])
 					# plt.plot(data['t'][pol],np.array(data['soma'][pol]),color = p['field_color'][pol])
 				self.fig_dend_trace.savefig(p['data_folder']+'fig_dend_trace'+'cellnum'+str(cell_num)+'.png', dpi=250)
 				plt.close(self.fig_dend_trace)
 
-
 if __name__ =="__main__":
-	# Weights(param.exp_3().params)
-	Spikes(param.exp_3().params)
-	# Voltage(param.exp_3().params)
+	Weights(param.exp_3().p)
+	Spikes(param.exp_3().p)
+	Voltage(param.exp_3().p)
 
 
 

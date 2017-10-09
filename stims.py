@@ -143,12 +143,12 @@ class tbs:
     """
     creates NetStim object for delivering theta burst stimulation
     """
-    def __init__(self,bursts=1,pulses=4,pulse_freq=100,burst_freq=5):
-        self.warm_up = 60   # warm up time (ms)
+    def __init__(self,bursts=1,pulses=4,pulse_freq=100,burst_freq=5,warmup = 30):
+        self.warmup = warmup   # warm up time (ms)
         self.stim  = [] # list of stim objects
         for a in range(0,bursts): # create new object for each burst
             self.stim.append(h.NetStim())
-            self.stim[a].start = self.warm_up + a*1000/burst_freq # start of burst
+            self.stim[a].start = self.warmup + a*1000/burst_freq # start of burst
             self.stim[a].interval = 1000/pulse_freq
             self.stim[a].noise  = 0 
             self.stim[a].number = pulses

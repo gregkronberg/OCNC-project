@@ -50,7 +50,7 @@ class Run():
 
 	# activate synapses
 	def activate_synapses(self,p):
-		self.stim = stims.tbs(bursts=p['bursts']).stim
+		self.stim = stims.tbs(bursts=p['bursts'],warmup=p['warmup'],pulses=p['pulses']).stim
 		self.nc = cell.Syn_act(p=p, syns=self.cell1.syns, stim=self.stim)
 
 	def shape_plot(self,p):
@@ -62,10 +62,6 @@ class Run():
 		for seec_i,sec in enumerate(p['seg_idx']):
 			self.sl.append(sec=self.cell1.geo[p['tree']][sec])
 			self.shapeplot.color(2, sec=self.cell1.geo[p['tree']][sec])
-		
-		# run time
-		h.dt = p['dt']
-		h.tstop = p['tstop']
 
 	def recording_vectors(self,p):
 		# set up recording vectors
@@ -104,7 +100,8 @@ class Run():
 							self.cell1.syns[tree_key]['clopath'][sec_i][seg_i]._ref_gbar)
 		# time
 		self.data['t'] = []
-		self.rec['t'] = h.Vector().record(h._ref_t)
+		self.rec['t'] = h.Vector()
+		self.rec['t'].record(h._ref_t)
 		
 		# dendrite voltage (sections chosen with 'plot_sec_idx' in parameter module)
 		# plot_sec_idx is a list organized as [sections]
@@ -114,9 +111,13 @@ class Run():
 		# loop over dcs fields
 		for f_i,f in enumerate(p['field']):
 
+			
 			# insert extracellular field
 			stims.dcs(cell=0,field_angle=p['field_angle'],intensity=f)
 			
+			# run time
+			h.dt = p['dt']
+			h.tstop = p['tstop']
 			# run simulation
 			h.run()
 
@@ -137,11 +138,12 @@ class Run():
 								self.data[tree_key][f_i][sec_i].append(np.array(self.rec[tree_key][sec_i][seg_i]))
 							
 							if ((tree_key == 'basal_w') or 
-							(tree_key == 'apical_trunk_W') or 
-							(tree_key == 'apical_tuft_W')):
+							(tree_key == 'apical_trunk_w') or 
+							(tree_key == 'apical_tuft_w')):
 								self.data[tree_key][f_i][sec_i].append(np.array(self.rec[tree_key][sec_i][seg_i]))
 
-			self.data['t'].append(np.array(self.rec['t']))
+			self.data['t'].append([])
+			self.data['t'][f_i] = np.array(self.rec['t'])
 		self.data['p'] = p
 
 def save_data(data):	# save data

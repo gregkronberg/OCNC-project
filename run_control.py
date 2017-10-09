@@ -65,4 +65,4 @@ def exp_3(trials=1,weights = [[.0018,.0002]]):
 			run.save_data(sim.data)
 
 if __name__ =="__main__":
-	exp_3(trials=1,weights = [[.0018,.0002]])
+	exp_3(trials=20,weights = [[.0009,.0002]])
