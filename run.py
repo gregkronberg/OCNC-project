@@ -29,16 +29,16 @@ class Run():
 	def __init__(self,p):
 
 		# create cell
-		self.cell1 = cell.Cell_Migliore_2005()
-		self.update_clopath(syns=self.cell1.syns['apical_tuft']['clopath'])
+		self.cell1 = cell.Cell_Migliore_2005(p)
+		self.update_clopath(p,syns=self.cell1.syns['apical_tuft']['clopath'])
 		self.activate_synapses(p)
 		self.recording_vectors(p)
 		self.run_sims(p)
 
 	# update clopath parameters
-	def update_clopath(self,syns):
-		for sec_i,sec in enumerate(syn_list):
-			for seg_i,seg in enumerate(syn_list[sec_i]):
+	def update_clopath(self,p,syns):
+		for sec_i,sec in enumerate(syns):
+			for seg_i,seg in enumerate(syns[sec_i]):
 				syns[sec_i][seg_i].delay_steps = p['clopath_delay_steps']
 				syns[sec_i][seg_i].tau_0 = p['clopath_tau_0']
 				syns[sec_i][seg_i].tau_r = p['clopath_tau_r']
@@ -75,22 +75,24 @@ class Run():
 		# loop over trees
 		for tree_key, tree in self.cell1.geo.iteritems():
 			self.rec[tree_key+'_v'] = []
-			self.rec[tree_key+'w'] = []
+			self.rec[tree_key+'_w'] = []
 			self.data[tree_key + '_v'] = []
 			self.data[tree_key + '_w'] = []
 			
 			# loop over sections
 			for sec_i,sec in enumerate(tree):
 				self.rec[tree_key+'_v'].append([])
-				self.rec_w[tree_key+'_w'] = []
+				self.rec[tree_key+'_w'].append([])
 				
 				# loop over segments
 				for seg_i,seg in enumerate(tree[sec_i]):
 					
+					# determine relative segment location in (0-1) 
+					seg_loc = (seg_i+1)/(self.cell1.geo[tree_key][sec_i].nseg+1)
 					# record voltage
 					self.rec[tree_key+'_v'][sec_i].append(h.Vector())
 					self.rec[tree_key+'_v'][sec_i][seg_i].record(
-						tree[sec_i][seg_i]._ref_v)
+						tree[sec_i](seg_loc)._ref_v)
 					
 					if ((tree_key == 'basal') or 
 					(tree_key == 'apical_trunk') or 
@@ -98,7 +100,7 @@ class Run():
 						
 						# record clopath weight
 						self.rec[tree_key+'_w'][sec_i].append(h.Vector())
-						self.rec_w[tree_key+'_w'][sec_i][seg_i].record(
+						self.rec[tree_key+'_w'][sec_i][seg_i].record(
 							self.cell1.syns[tree_key]['clopath'][sec_i][seg_i]._ref_gbar)
 		# time
 		self.data['t'] = []
@@ -120,24 +122,24 @@ class Run():
 
 			# store recording vectors as arrays
 			# loop over trees
-			for tree_key,tree in self.rec_v.iteritems():
+			for tree_key,tree in self.rec.iteritems():
 				# add list for each field polarity
-				self.data[tree_key+'_v'].append([])
-				self.data[tree_key+'_w'].append([])
-				
-				# loop over sections
-				for sec_i,sec in enumerate(tree):
-					self.data[tree_key+'_v'][f_i].append([])
-					self.data[tree_key+'_w'][f_i].append([])
-					
-					# loop over segments
-					for seg_i,seg in enumerate(sec):
-						self.data[tree_key+'_v'][f_i][sec_i].append(np.array(self.rec_v[tree_key][sec_i][seg_i]))
+				self.data[tree_key].append([])
+
+				if tree_key != 't':
+					# loop over sections
+					for sec_i,sec in enumerate(self.rec[tree_key]):
+						self.data[tree_key][f_i].append([])
 						
-						if ((tree_key == 'basal') or 
-						(tree_key == 'apical_trunk') or 
-						(tree_key == 'apical_tuft')):
-							self.data[tree_key+'_w'][f_i][sec_i].append(np.array(self.rec_w[tree_key][sec_i][seg_i]))
+						# loop over segments
+						for seg_i,seg in enumerate(sec):
+							if '_v' in tree_key:
+								self.data[tree_key][f_i][sec_i].append(np.array(self.rec[tree_key][sec_i][seg_i]))
+							
+							if ((tree_key == 'basal_w') or 
+							(tree_key == 'apical_trunk_W') or 
+							(tree_key == 'apical_tuft_W')):
+								self.data[tree_key][f_i][sec_i].append(np.array(self.rec[tree_key][sec_i][seg_i]))
 
 			self.data['t'].append(np.array(self.rec['t']))
 		self.data['p'] = p

@@ -81,15 +81,6 @@ class exp_3:
 	Activate a random set of synapses on the apical dendritic tuft with TBS and record the resulting plasticity
 	"""
 	def __init__(self, syn_frac=0.4, w_mean=.0018, w_std=.0002, w_rand=True, exp='exp_3'):
-		
-		# fraction of synapses that are randomly activated
-		self.syn_frac = syn_frac
-		# load cell
-		self.cell = cell.Cell_Migliore_2005()
-		# choose active segments 
-		self.segs = self.choose_seg_rand(syn_list = self.cell.syns['apical_tuft']['ampa'], syn_frac=self.syn_frac)
-		# set weights for active segments
-		self.weights = self.set_weights(seg_idx=choose_seg['seg_idx'], w_mean=w_mean, w_std = w_std, w_rand=w_rand)
 	
 		# set parameters.  Cannot contain any hoc objects, as this will be pickled for data storage
 		self.p = {
@@ -103,11 +94,11 @@ class exp_3:
 			'w_std':w_std,
 			'w_mean':w_mean, # mean synaptic weight (microsiemens or micro-ohms)
 			'tree':'apical_tuft',
-			'w_list':self.weights,
-			'sec_list':self.segs['sec_list'],
-			'seg_list':self.segs['seg_list'],
-			'sec_idx': self.segs['sec_idx'],
-			'seg_idx':self.segs['seg_idx'],
+			'w_list':[],
+			'sec_list':[],
+			'seg_list':[],
+			'sec_idx': [],
+			'seg_idx':[],
 			'field_angle':0,
 			'field':[-20,0,20],
 			'field_color':['r','k','b'],
@@ -119,8 +110,6 @@ class exp_3:
 			'pulse_freq':100,
 			'burst_freq':5,
 
-			
-			
 			# clopath synapse parameters
 			'clopath_delay_steps': 1,
 			'clopath_tau_0':12, # time constant (ms) for low passed membrane potential for depression
@@ -166,13 +155,22 @@ class exp_3:
 
 			}
 
+			# fraction of synapses that are randomly activated
+		self.syn_frac = syn_frac
+		# load cell
+		self.cell = cell.Cell_Migliore_2005(self.p)
+		# choose active segments 
+		self.segs = self.choose_seg_rand(syn_list = self.cell.syns['apical_tuft']['ampa'], syn_frac=self.syn_frac)
+		# set weights for active segments
+		self.weights = self.set_weights(seg_idx=self.p['seg_idx'], w_mean=w_mean, w_std = w_std, w_rand=w_rand)
+
 	def choose_seg_rand(self, syn_list, syn_frac):
 		"""
 		input a lis of synapses and a fraction of them to choose, returns lists of chosen sections and segments
 		"""
 
 		# list all segments as [[section,segment]] 
-		segs_all = ([[sec,seg] for sec in range(len(syn_list)) for seg in range(len(syn_list[sec]))])
+		segs_all = [[sec_i,seg_i] for sec_i,sec in enumerate(syn_list) for seg_i,seg in enumerate(syn_list[sec_i])]
 
 		# choose segments to activate
 		segs_choose = np.random.choice(len(segs_all),int(syn_frac*len(segs_all)),replace=False)
@@ -180,6 +178,7 @@ class exp_3:
 		# list of active sections (contains duplicates)
 		sec_list = [segs_all[a][0] for a in segs_choose]
 		
+		print sec_list
 		# list of active segments
 		seg_list = [segs_all[a][1] for a in segs_choose]
 
@@ -190,6 +189,12 @@ class exp_3:
 		seg_idx = []
 		for sec in sec_idx:
 			seg_idx.append([seg_list[sec_i] for sec_i,sec_num in enumerate(sec_list) if sec_num==sec])
+
+		self.p['sec_list'] = sec_list
+		self.p['seg_list'] = seg_list
+		self.p['sec_idx'] = sec_idx
+		self.p['seg_idx'] = seg_idx
+
 		return {
 		'sec_list':sec_list,
 		'seg_list':seg_list,
@@ -204,12 +209,14 @@ class exp_3:
 			# loop over segments
 			for seg_i,seg in enumerate(seg_idx[sec_i]):
 				# if weights are randomized
-				if rand:
+				if w_rand:
 					# choose from normal distribution
-					w_list[sec_i][seg_i].append(np.random.normal(w_mean,w_std))
+					w_list[sec_i].append(np.random.normal(w_mean,w_std))
 				# otherwise set all weights to the same
 				else:
-					w_list[sec_i][seg_i].append(w_mean)
+					w_list[sec_i].append(w_mean)
+
+		self.p['w_list']=w_list
 
 		return w_list # list of weights [section][segement]
 

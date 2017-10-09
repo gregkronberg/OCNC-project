@@ -24,14 +24,16 @@ class Cell_Migliore_2005:
 		h.load_file('geo5038804.hoc')   # load cell class geometry from Migliore 2005
 		h.load_file('fixnseg.hoc')  	# set discretization based on dlambda rule (set dlambda in hoc file)
 		
+		self.geo = {}
+		self.syns = {}
 		self.geo['soma'] = h.soma
 		self.geo['axon'] =  h.axon
 		self.geo['basal'] = h.dendrite
 		self.geo['apical_trunk'] = h.user5
 		self.geo['apical_tuft'] = h.apical_dendrite
-		self.syns = {}
+		
 
-		h.celcius = p['celcius']
+		h.celsius = p['celsius']
 		# set soma as origin for distance measurements
 		h.distance(sec = self.geo['soma'][0])
 
@@ -50,7 +52,7 @@ class Cell_Migliore_2005:
 			for sec_i,sec in enumerate(tree):
 				
 				# add list to store synapses for each section
-				for syn_key,syn in self.syns.iteritems():
+				for syn_key,syn in self.syns[tree_key].iteritems():
 					syn.append([])
 
 				# common passive biophysics for all sections
@@ -125,7 +127,7 @@ class Cell_Migliore_2005:
 				            seg.gkabar_kap = p['KMULTP']*(1+p['ka_grad']*seg_dist/100)
 
 				        # loop over synapse types
-				        for syn_key,syn in self.syns.iteritems():
+				        for syn_key,syn in self.syns[tree_key].iteritems():
 				        	if syn_key == 'ampa':
 				        		syn[sec_i].append(h.Exp2Syn(sec(seg.x)))
 				        		syn[sec_i][seg_i].tau1 = p['tau1_ampa']
@@ -148,21 +150,27 @@ class Syn_act:
 		self.nc = {}
 		
 		# loop over synapse types
-		for syn_key,syn in syns:
-			self.nc[syn_key] = []
+		for tree_key,tree in syns.iteritems():
+			if tree_key == p['tree']:
+				self.nc[tree_key] = {}
 
-			# loop over active sections
-			for sec_i,sec in enumerate(p['seg_idx']):
-				self.nc[syn_key].append([])
-				
-				# loop over active segments
-				for seg_i,seg in enumerate(p['seg_idx'][sec_i]):
-					self.nc[syn_key][sec_i].append([])
+				for syntype_key,syn_type in syns[tree_key].iteritems():
+					self.nc[tree_key][syntype_key] = []
 
-					# loop over stimulation bursts
-					for syn_stim_i,syn_stim in enumerate(stim):
-						self.nc[syn_key][sec_i][seg_i].append(
-							h.NetCon(syn_stim,syn[sec][seg],0,0,p['w_list'][sec_i][seg_i]))
+					# loop over active sections
+					for sec_i,sec in enumerate(p['sec_idx']):
+						self.nc[tree_key][syntype_key].append([])
+						
+						# loop over active segments
+						for seg_i,seg in enumerate(p['seg_idx'][sec_i]):
+							self.nc[tree_key][syntype_key][sec_i].append([])
+
+							print tree_key,syntype_key
+							print sec,seg,len(syns[tree_key][syntype_key])
+							# loop over stimulation bursts
+							for syn_stim_i,syn_stim in enumerate(stim):
+								self.nc[tree_key][syntype_key][sec_i][seg_i].append(
+									h.NetCon(syn_stim,syns[tree_key][syntype_key][sec][seg],0,0,p['w_list'][sec_i][seg_i]))
 
 # set procedure if called as a script
 if __name__ == "__main__":

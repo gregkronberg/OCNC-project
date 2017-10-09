@@ -62,7 +62,7 @@ def exp_3(trials=1,weights = [[.0018,.0002]]):
 			print 'trial'+ str(tri) + ' duration:' + str(end -start) 
 			
 			# save data for eahc trial
-			run.save_data(sim.data,p)
+			run.save_data(sim.data)
 
 if __name__ =="__main__":
 	exp_3(trials=1,weights = [[.0018,.0002]])
