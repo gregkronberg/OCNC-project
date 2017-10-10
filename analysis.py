@@ -33,20 +33,27 @@ class Weights():
 		for data_file in os.listdir(p['data_folder']):
 			# check for proper data file format
 			if 'data' in data_file:
-				# load data file
-				pkl_file = open(p['data_folder']+data_file, 'rb')
-				data = pickle.load(pkl_file)
 
-				self.p = data['p']
-				
-				self.n_act_seg = len(self.p['seg_list'])
-				
-				# measure weight changes for individual neuron
-				self.measure_dw(data)
-				
-				# add individual neuron to the group
-				self.w_end_all = np.append(self.w_end_all,self.w_end,axis=1)
-				self.w_start_all = np.append(self.w_start_all,self.w_start,axis=1)
+				with open(p['data_folder']+data_file, 'rb') as pkl_file:
+					data = pickle.load(pkl_file)
+
+					# load data file
+					# pkl_file = open(p['data_folder']+data_file, 'rb')
+					# data = pickle.load(pkl_file)
+
+					self.p = data['p']
+					
+					self.n_act_seg = len(self.p['seg_list'])
+					
+					# measure weight changes for individual neuron
+					self.measure_dw(data)
+					
+					# add individual neuron to the group
+					self.w_end_all = np.append(self.w_end_all,self.w_end,axis=1)
+					self.w_start_all = np.append(self.w_start_all,self.w_start,axis=1)
+
+				# # close pickle file
+				# pkl_file.close()
 
 	def measure_dw(self,data):
 		# set up arrays to record final and initial weights at each active synapse
@@ -170,7 +177,7 @@ class Spikes():
 				
 				# add spike times to array
 				self.spiket_soma[pol] = np.append(self.spiket_soma[pol],self.soma_spikes*p['dt'],axis=1)
-				
+
 				# track cell number
 				for spike_i,spike in enumerate(self.soma_spikes[0,:]):
 					# detect the window that the spike occurred in, indexed by the onset time of the window
@@ -251,7 +258,15 @@ class Spikes():
 						self.spike_dend_init_win[pol].append(win[0])
 			
 			self.spike_dend_init[pol] = np.array([self.spike_dend_init[pol]])
-			print self.spike_dend_init[pol].shape
+
+	def spike_start_compare(self,data,p):
+		pass
+		# loop over polarities
+		# loop over cells
+		# loop over spike windows
+		# compare first dendritic spike to first somatic spike
+		# get cross correlation for all time delays
+		# determine whether these features influence field effects 
 
 	def save_spikes(self,p):
 		with open(p['data_folder']+'spiket_soma_all_'+p['experiment']+'.pkl', 'wb') as output:
@@ -287,6 +302,11 @@ class Spikes():
 		self.fig_spike_hist_dend.savefig(p['data_folder']+'fig_spike_hist_dend'+'.png', dpi=250)
 		plt.close(self.fig_spike_hist_dend)
 
+	def spikes_xcorr(self,data1,data2,p):
+		pass
+		# 
+
+
 	def detect_spikes(self,data,threshold=-20):
 		spike_times = np.asarray(np.where(np.diff(np.sign(data-threshold))>0))
 		spike_train = np.zeros([1,len(data)])
@@ -309,15 +329,15 @@ class Voltage():
 				self.fig_dend_trace = plt.figure()
 				for pol in range(self.n_pol):
 					print len(data['t'])
-					plt.plot(data['t'][pol],data[p['tree']+'_v'][pol][10][0],color = p['field_color'][pol])
-					# plt.plot(data['t'][pol],np.array(data['soma'][pol]),color = p['field_color'][pol])
+					# plt.plot(data['t'][pol],data[p['tree']+'_v'][pol][10][0],color = p['field_color'][pol])
+					plt.plot(data['t'][pol],np.array(data['soma_v'][pol][0][0]),color = p['field_color'][pol])
 				self.fig_dend_trace.savefig(p['data_folder']+'fig_dend_trace'+'cellnum'+str(cell_num)+'.png', dpi=250)
 				plt.close(self.fig_dend_trace)
 
 if __name__ =="__main__":
 	Weights(param.exp_3().p)
-	Spikes(param.exp_3().p)
-	Voltage(param.exp_3().p)
+	# Spikes(param.exp_3().p)
+	# Voltage(param.exp_3().p)
 
 
 

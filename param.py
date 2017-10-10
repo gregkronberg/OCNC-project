@@ -80,7 +80,7 @@ class exp_3:
 
 	Activate a random set of synapses on the apical dendritic tuft with TBS and record the resulting plasticity
 	"""
-	def __init__(self, syn_frac=0.4, w_mean=.0018, w_std=.0002, w_rand=True, exp='exp_3'):
+	def __init__(self, syn_frac=0.4, w_mean=.0018, w_std=.0002, w_rand=True, exp='exp_4'):
 	
 		# set parameters.  Cannot contain any hoc objects, as this will be pickled for data storage
 		self.p = {
@@ -116,7 +116,7 @@ class exp_3:
 			'clopath_tau_r' : 30, # time constant (ms) for low pass filter presynaptic variable
 			'clopath_tau_y': 10, # time constant (ms) for low pass filter post membrane potential for potentiation
 			'clopath_A_m':.0001, # depression magnitude parameter (mV^-1)
-			'clopath_A_p': .004, # amplitude for potentiation (mV^-2)
+			'clopath_A_p': .01, # amplitude for potentiation (mV^-2)
 			'clopath_tetam':-41, # depression threshold (mV)
 			'clopath_tetap':-38, # potentiation threshold (mV)
 

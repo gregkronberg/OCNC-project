@@ -156,6 +156,7 @@ def save_data(data):	# save data
 		'_trial_'+str(p['trial'])+
 		'_weight_'+str(p['w_mean'])
 		+'_synfrac_'+str(p['syn_frac'])+
+		p['trial_id']+
 		'.pkl', 'wb') as output:
 
 		pickle.dump(data, output,protocol=pickle.HIGHEST_PROTOCOL)

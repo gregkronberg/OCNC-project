@@ -15,6 +15,7 @@ import param
 import run
 import time
 import uuid
+import analysis
 h.load_file("stdrun.hoc")
 
 
@@ -38,10 +39,10 @@ def exp_3(trials=1,weights = [[.0018,.0002]]):
 		# loop over weights
 		for w in weights:
 			# choose fraction of synapses to be activated
-			syn_frac = np.random.normal(loc=.4, scale=.1) # chosen from gaussian
+			syn_frac = np.random.normal(loc=.2, scale=.2) # chosen from gaussian
 			
 			# load rest of parameters from parameter module
-			p = param.exp_3(syn_frac=syn_frac, w_mean=w[0], w_std=w[1], w_rand=True, exp='exp_3').p
+			p = param.exp_3(syn_frac=syn_frac, w_mean=w[0], w_std=w[1], w_rand=True, exp='exp_4').p
 			
 			# store trial number
 			p['trial']=tri
@@ -65,4 +66,8 @@ def exp_3(trials=1,weights = [[.0018,.0002]]):
 			run.save_data(sim.data)
 
 if __name__ =="__main__":
-	exp_3(trials=20,weights = [[.0009,.0002]])
+	exp_3(trials=100,weights = [[.002,.002]])
+	dw = analysis.Weights(param.exp_3().p)
+	print np.mean(dw.w_end_all,axis=1)/.05 
+	analysis.Spikes(param.exp_3().p)
+	# analysis.Voltage(param.exp_3().p)
