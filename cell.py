@@ -8,40 +8,56 @@ from neuron import h
 import stims
 
 # create cell
-class Cell_Migliore_2005:
-	"""
-	pyramidal neuron based on Migliore et al. 2005
+class CellMigliore2005:
+	""" pyramidal neuron based on Migliore et al. 2005
+
+	An instance of this object will creates a cell (hoc objects) at the top level of the hoc interpreter using the hoc files in _init_geometry.  The .geo attribute contains a python mapping to these hoc objects.  The geo object is organized as geo['section tree'][section](segment location)
+
+	the syns attribute creates a container for synapse objects that are added to each segment in the hoc cell.  syns is organized as syns['section tree']['synapse type'][section][segment number]
+	
 	"""
 	def __init__(self,p):
-		self.p = p
-		self._init_geometry(p)
-		self.insert_mech(p)
+		# initialize geometry
+		self.geometry(p)
+		# insert membrane mechanisms
+		self.mechanisms(p)
 
-	def _init_geometry(self,p):
-		"""
-		create cell geometry at hoc top level
-		"""
-		h.load_file('geo5038804.hoc')   # load cell class geometry from Migliore 2005
-		h.load_file('fixnseg.hoc')  	# set discretization based on dlambda rule (set dlambda in hoc file)
+	def geometry(self,p):
+		""" create cell geometry at hoc top level
 		
+		"""
+		# load cell geometry into hoc interpreter
+		h.load_file('geo5038804.hoc')  
+		# set discretization based on dlambda rule (set dlambda in hoc file) 
+		h.load_file('fixnseg.hoc')  	
+		# dictionary for storing geometry ['tree'][sec](seg location)
 		self.geo = {}
+		# dictionary for storing synapse objects ['tree']['type'][sec][seg]
 		self.syns = {}
+		# add section trees to geometry dictionary
 		self.geo['soma'] = h.soma
 		self.geo['axon'] =  h.axon
 		self.geo['basal'] = h.dendrite
 		self.geo['apical_trunk'] = h.user5
 		self.geo['apical_tuft'] = h.apical_dendrite
 		
-
+		# set temperature in hoc
 		h.celsius = p['celsius']
 		# set soma as origin for distance measurements
 		h.distance(sec = self.geo['soma'][0])
 
-	def insert_mech(self,p):
+	def mechanisms(self,p):
+		""" insert membrane mechanisms
+
+		self.syns is updated to store an object for each synapse.  It is organized as ['tree']['synapse type'][section][segment].  Note that the last index will depend on how the cell is discretized as the number segments changes in each sections 
+
+		the parameters for each membrane mechanism  are store in a dictionary called p.  See the param module for details.
+		"""
+
 		# loop over trees
 		for tree_key,tree in self.geo.iteritems():
 			
-			# create sub-dictionary for different types
+			# create sub-dictionary for different types of synapses
 			self.syns[tree_key] = {
 			'ampa' : [],
 			'nmda' : [],
@@ -57,55 +73,76 @@ class Cell_Migliore_2005:
 
 				# common passive biophysics for all sections
 				sec.insert('pas')
-				sec.g_pas = 1/p['RmAll']				# passive conductance (S/cm2)
-				sec.e_pas = p['Vrest']				# leak reversal potential (mV)
-				sec.cm = p['Cm'] 						# specific capacitance (uf/cm2)
-				sec.Ra = p['RaAx'] 					# axial resistance (ohm cm) 
+				# passive conductance (S/cm2)
+				sec.g_pas = 1/p['RmAll']			
+				# leak reversal potential (mV)	
+				sec.e_pas = p['Vrest']				
+				# specific capacitance (uf/cm2)
+				sec.cm = p['Cm'] 			
+				# axial resistance (ohm cm) 		
+				sec.Ra = p['RaAx'] 
+										
 
-				# axon
+
+				# axon active bipophysics
 				if tree_key == 'axon':
-					# active biophysics (parmameters: Migliore 2005)
-					sec.insert('nax')						# voltage gated sodium
+					# voltage gated sodium
+					sec.insert('nax')						
 					sec.gbar_nax = p['gna']*p['AXONM']
-					sec.insert('kdr')						# delayed rectifier potassium
+					# delayed rectifier potassium
+					sec.insert('kdr')						
 					sec.gkdrbar_kdr = p['gkdr']
-					sec.insert('kap')						# a-type potassium
+					# a-type potassium
+					sec.insert('kap')						
 					sec.gkabar_kap = p['KMULTP']
-					sec.ena = p['ena']					# sodium reversal potential (see _init_parameters)
-					sec.ek = p['ek']						# potassium reversal potential (see _init_parameters)
-
-				# soma
+					# sodium reversal potential 
+					sec.ena = p['ena']		
+					# potassium reversal potential 
+					sec.ek = p['ek']
+					
+				# soma active biophysics
 				elif tree_key == 'soma':
-					# soma biophysics (parmameters: Migliore 2005)
+					# voltage gated sodium
 					sec.insert('na3')
-					sec.gbar_na3 = p['gna']				# voltage gated sodium
+					sec.gbar_na3 = p['gna']	
+					# h-current			
 					sec.insert('hd')
-					sec.ghdbar_hd = p['ghd']				# h-current
-					sec.vhalfl_hd = p['vhalfl_prox']		# h-current activation threshold
+					sec.ghdbar_hd = p['ghd']				
+					sec.vhalfl_hd = p['vhalfl_prox']
+					# delayed rectifier potassium		
 					sec.insert('kdr')
-					sec.gkdrbar_kdr = p['gkdr']			# delayed rectifier potassium
+					sec.gkdrbar_kdr = p['gkdr']	
+					# a-type potassium		
 					sec.insert('kap')
-					sec.gkabar_kap = p['KMULTP']			# scaling factor for a-type potassium current
-					sec.ena = p['ena']					# sodium reversal potential 
-					sec.ek = p['ek']						# potassium reversal potential 
+					sec.gkabar_kap = p['KMULTP']
+					# sodium reversal potential 
+					sec.ena = p['ena']		
+					# potassium reversal potential 
+					sec.ek = p['ek']			
 
-				# dendrites
+				# dendrites active biophysics
 				elif ((tree_key == 'basal') or 
 				(tree_key == 'apical_trunk') or 
 				(tree_key == 'apical_tuft')):
-					# active biophysics (parameters: Migliore 2005)
+					# h-current
 				    sec.insert('hd')
-				    sec.ghdbar_hd = p['ghd']		# h-current
+				    sec.ghdbar_hd = p['ghd']
+				    # voltage gated sodium		
 				    sec.insert('na3')
-				    sec.gbar_na3 = p['gna']		# voltage gated sodium
+				    sec.gbar_na3 = p['gna']	
+				    # delayed rectifier potassium	
 				    sec.insert('kdr')
-				    sec.gkdrbar_kdr = p['gkdr']	# delayed rectifier potassium
+				    sec.gkdrbar_kdr = p['gkdr']	
+				    # a-type potassium proximal
 				    sec.insert('kap')
-				    sec.gkabar_kap = 0			# a-type potassium proximal
+				    sec.gkabar_kap = 0	
+				    # a-type potassium distal		
 				    sec.insert('kad')
-				    sec.gkabar_kad = 0			# a-type potassium distal
-				    sec.ena = p['ena']			# sodium reversal potential 
-				    sec.ek = p['ek']				# potassium reversal potential 
+				    sec.gkabar_kad = 0	
+				    # sodium reversal potential 
+				    sec.ena = p['ena']
+				    # potassium reversal potential
+				    sec.ek = p['ek']		
 
 				    # mechanisms that vary with distance from soma
 				    # loop over segments
@@ -121,7 +158,6 @@ class Cell_Migliore_2005:
 				        if seg_dist > 100:	# distal
 				            seg.vhalfl_hd = p['vhalfl_dist']
 				            seg.gkabar_kad = p['KMULT']*(1+p['ka_grad']*seg_dist/100)
-				        
 				        else:	# proximal
 				            seg.vhalfl_hd = p['vhalfl_prox']
 				            seg.gkabar_kap = p['KMULTP']*(1+p['ka_grad']*seg_dist/100)
@@ -140,13 +176,20 @@ class Cell_Migliore_2005:
 				        	elif syn_key == 'clopath':
 				        		syn[sec_i].append(h.STDPSynCCNon(sec(seg.x)))
 
-# activate a specified subset of synapses with NetStim/NetCon
 class Syn_act:
-	"""
-	Activate a specific subset of synpases with NetCon objects
+	"""Activate a specific subset of synpases with NetCon objects
+	
+	arguments: 
+	syns = nested dictionary containing synapse objects organized as ['section tree']['synapse type'][section number][segment number]
+
+	p =  dictionary of parameters including sec_idx and seg_idx lists, including section and segment numbers to be activated.  p also contains 'w_list', which sets the weight for each of the activated synapses. w_list has the same dimensions as seg_idx
+
+	stim = list of NetStim objects to be connected (via NetCon) to the synapses in syns that designated by sec_idx and seg_idx. The stim list will be iterated through and a distinct NetCon object will be created for each NetStim for each activated synapse.  The need for multiple NetStim objects arises from complicated stimulation patterns, like theta bursts, which are not easily programmed with a single NetStim
+
+	The created NetCon objects are referenced by the nc object, which is organized the same way as syns, namely ['section tree']['synapse type'][section number][segment number][NetStim object]
 	"""
 	def __init__(self,syns,p,stim):
-		# store netcon objects [dic of synapse type][section][segment][list of netstim objects]
+		# store netcon objects ['tree']['syn type'][section][segment][list of netstim objects]
 		self.nc = {}
 		
 		# loop over synapse types

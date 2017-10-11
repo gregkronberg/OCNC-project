@@ -335,9 +335,9 @@ class Voltage():
 				plt.close(self.fig_dend_trace)
 
 if __name__ =="__main__":
-	Weights(param.exp_3().p)
+	# Weights(param.exp_3().p)
 	# Spikes(param.exp_3().p)
-	# Voltage(param.exp_3().p)
+	Voltage(param.exp_3(exp='exp_5').p)
 
 
 
