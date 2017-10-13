@@ -1,5 +1,7 @@
 """
 analysis
+
+data structure for each trial is organized as ['tree'][polarity][section][segment]
 """
 from __future__ import division
 import numpy as np
@@ -259,8 +261,50 @@ class Spikes():
 			
 			self.spike_dend_init[pol] = np.array([self.spike_dend_init[pol]])
 
-	def spike_start_compare(self,data,p):
-		pass
+	def spike_start_compare(self,p):
+		cell1 = cell.CellMigliore2005(p)
+		spikes = {}
+		for tree_i,tree in cell1.geo.iteritems():
+			spikes[tree_key] = []
+			for field_i,field in p['field']:
+				spikes[tree_key].append([])
+				for sec_i,sec in tree:
+					spikes[tree_key][field_i].append([])
+					for seg_i,seg in sec:
+						spikes[tree_key][field_i][sec_i].append({})
+						spikes[tree_key][field_i][sec_i][seg_i]['times'] = []
+						spikes[tree_key][field_i][sec_i][seg_i]['train'] = []
+						spikes[tree_key][field_i][sec_i][seg_i]['p'] = []
+						spikes[tree_key][field_i][sec_i][seg_i]['xcorr'] = []
+
+
+		for data_file in os.listdir(p['data_folder']):
+			# check for proper data file format
+			if 'data' in data_file:
+				with open(p['data_folder']+data_file, 'rb') as pkl_file:
+					data = pickle.load(pkl_file)
+
+				for tree_key,tree in spikes:
+					for field_i,field in tree:
+						for sec_i,sec in field:
+							for seg_i,seg in sec:
+								spike_temp = self.detect_spikes(data[tree_key+'_v'][field_i][sec_i][seg_i],thresshold=-20)
+								if tree_key is 'soma':
+									spike_temp_soma =spike_temp 
+
+								seg['times'].append(spike_temp['times'])
+								seg['train'].append(spike_temp['train'])
+								seg['p'].append(data['p'])
+								if tree_key is not 'soma':
+									xcorr_temp = scipy.signal.correlate(spike_temp['train'],spikes['soma'][field_i])
+
+								seg['xcorr'].append(spike_temp['xcorr'])
+								
+
+
+								spikes = self.detect_spikes(seg,threshold = -20)
+
+
 		# loop over polarities
 		# loop over cells
 		# loop over spike windows

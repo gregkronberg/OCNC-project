@@ -39,7 +39,7 @@ class exp_3:
 			'w_rand':w_rand,
 			'w_std':w_std,
 			'w_mean':w_mean, # mean synaptic weight (microsiemens or micro-ohms)
-			'tree':'apical_tuft',
+			'tree':'apical_trunk',
 			'w_list':[],
 			'sec_list':[],
 			'seg_list':[],
@@ -62,7 +62,7 @@ class exp_3:
 			'clopath_tau_r' : 30, # time constant (ms) for low pass filter presynaptic variable
 			'clopath_tau_y': 10, # time constant (ms) for low pass filter post membrane potential for potentiation
 			'clopath_A_m':.0001, # depression magnitude parameter (mV^-1)
-			'clopath_A_p': .01, # amplitude for potentiation (mV^-2)
+			'clopath_A_p': .001*1.01, # amplitude for potentiation (mV^-2)
 			'clopath_tetam':-41, # depression threshold (mV)
 			'clopath_tetap':-38, # potentiation threshold (mV)
 
