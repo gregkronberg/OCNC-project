@@ -12,6 +12,7 @@ import itertools as it
 import os
 import cPickle as pickle
 import param
+import math
 
 
 class Weights():
@@ -360,23 +361,73 @@ class Spikes():
 		return {'times':spike_times,'train':spike_train}
 		
 class Voltage():
-	def __init__(self,p):
-		self.n_pol = len(p['field'])
-		cell_num=-1
+	""" plot voltage in specific sections 
+	"""
+	def __init__(self):
+		pass
+		
+	def plot_all(self, p):
+		"""
+		"""
+		# iterate over all data files in folder
 		for data_file in os.listdir(p['data_folder']):
 			# check for proper data file format
 			if 'data' in data_file:
-				cell_num+=1
-				# load data file
-				pkl_file = open(p['data_folder']+data_file, 'rb')
-				data = pickle.load(pkl_file)
-				self.fig_dend_trace = plt.figure()
-				for pol in range(self.n_pol):
-					print len(data['t'])
-					# plt.plot(data['t'][pol],data[p['tree']+'_v'][pol][10][0],color = p['field_color'][pol])
-					plt.plot(data['t'][pol],np.array(data['soma_v'][pol][0][0]),color = p['field_color'][pol])
-				self.fig_dend_trace.savefig(p['data_folder']+'fig_dend_trace'+'cellnum'+str(cell_num)+'.png', dpi=250)
-				plt.close(self.fig_dend_trace)
+				# open data file
+				with open(p['data_folder']+data_file, 'rb') as pkl_file:
+					data = pickle.load(pkl_file)
+				# update specific experiment parameters
+				p_data = data['p']
+				# plot voltage traces in specified segments (automatically saved to same folder)
+				self.plot_trace(data=data, 
+					tree=p_data['tree'], 
+					sec_idx=p_data['sec_idx'], 
+					seg_idx=p_data['seg_idx'])
+
+
+	def plot_trace(self, data, tree, sec_idx, seg_idx, soma=True):
+		"""
+		"""
+		# load parameters
+		p = data['p']
+		# number field intensities/polarities
+		n_pol = len(p['field'])
+		# number of segments to plot
+		nseg =  sum([sum(seg for seg in sec) for sec in seg_idx])
+		if soma:
+			nseg+=1
+		cols = math.ceil(math.sqrt(nseg))
+		rows = math.ceil(math.sqrt(nseg))
+		# create plot array, axes is a list of figures in the array
+		fig, axes = plt.subplots(rows, cols, )
+		# count segments
+		cnt=-1
+		# iterate over sections
+		for sec_i,sec in enumerate(seg_idx):
+			# iterate over segments
+			for seg in sec:
+				cnt+=1
+				# iterate over stimulation polarity
+				for pol in range(n_pol):
+					
+					# time vector
+					t = data['t'][pol]
+					
+					# voltage vector
+					if soma and cnt<nseg:
+						v = data[tree+'_v'][pol][sec_idx[sec_i]][seg]
+					# last plot is soma 
+					elif soma and cnt==nseg: 
+						v = data['soma_v'][pol][0][0] 
+					
+					color = p['field_color'][pol]
+					
+					# add to corrsponding axis
+					axes[cnt].plot(t, v, color=color)
+		
+		# save and close figure
+		fig.savefig(p['data_folder']+'_trace_'+p['trial_id']+'.png', dpi=300)
+		plt.close(self.fig_dend_trace)
 
 if __name__ =="__main__":
 	# Weights(param.exp_3().p)

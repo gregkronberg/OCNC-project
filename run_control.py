@@ -16,45 +16,117 @@ import run
 import time
 import uuid
 import analysis
+import sys
 h.load_file("stdrun.hoc")
 
-def exp_3(trials=1,weights = [[.0018,.0002]]):
-	# loop over trials
-	for tri in range(trials):
-		# loop over weights
-		for w in weights:
-			# choose fraction of synapses to be activated
-			# syn_frac = np.random.normal(loc=.1, scale=.1) # chosen from gaussian
+# 
+class Experiment:
+	"""
+	"""
+	def __init__(self, **kwargs):
+		experiment = getattr(self, kwargs['exp'])
 
-			syn_frac = 0.1
-			
-			# load rest of parameters from parameter module
-			p = param.exp_3(syn_frac=syn_frac, w_mean=w[0], w_std=w[1], w_rand=True, exp='exp_5').p
-			
-			# store trial number
-			p['trial']=tri
-			
-			# create unique identifier for each trial
-			p['trial_id'] = str(uuid.uuid4())
-			
-			# start timer
-			start = time.time() 
-			
-			# run simulation
-			sim = run.Run(p)	
+		experiment(**kwargs) 
 
-			# end timer
-			end = time.time() 
+	# random fraction of all synapses in a given tree
+	def exp_1(self, **kwargs):
+		exp = 'exp_1'
+		tree = kwargs['tree']
+		trials = kwargs['trials']
+		weights = kwargs['weights']
+		w_rand = kwargs['w_rand']
+		syn_frac = kwargs['syn_frac']
 
-			# print trial and simulation time
-			print 'trial'+ str(tri) + ' duration:' + str(end -start) 
-			
-			# save data for eahc trial
-			run.save_data(sim.data)
+		# loop over trials
+		for tri in range(trials):
+			# loop over weights
+			for w in weights:
+				# choose fraction of synapses to be activated
+				# syn_frac = np.random.normal(loc=.1, scale=.1) # chosen from gaussian
+				
+				# load rest of parameters from parameter module
+				p = param.exp_3(syn_frac=syn_frac, w_mean=w[0], w_std=w[1], w_rand=w_rand, exp=exp).p
+				
+				# store trial number
+				p['trial']=tri
+				
+				# create unique identifier for each trial
+				p['trial_id'] = str(uuid.uuid4())
+				
+				# start timer
+				start = time.time() 
+				
+				# run simulation
+				sim = run.Run(p)	
+
+				# end timer
+				end = time.time() 
+
+				# print trial and simulation time
+				print 'trial'+ str(tri) + ' duration:' + str(end -start) 
+				
+				# save data for eahc trial
+				run.save_data(sim.data)
+
+		self.p = p
+
+	# choose specific synapses
+	def exp_2(self, **kwargs):
+		exp = 'exp_2'
+		tree = kwargs['tree']
+		trials = kwargs['trials']
+		w_mean = kwargs['w_mean']
+		w_std = kwargs['w_std']
+		w_rand = kwargs['w_rand']
+		sec_idx = kwargs['sec_idx']
+		seg_idx = kwargs['seg_idx']
+
+
+		# loop over trials
+		for tri in range(trials):
+			# loop over weights
+			for w in w_mean:
+				# choose fraction of synapses to be activated
+				# syn_frac = np.random.normal(loc=.1, scale=.1) # chosen from gaussian
+
+				kwargs['w_mean'] = w
+				# load rest of parameters from parameter module
+				p = param.Experiment(**kwargs).p
+				
+				# store trial number
+				p['trial']=tri
+				
+				# create unique identifier for each trial
+				p['trial_id'] = str(uuid.uuid4())
+				
+				# start timer
+				start = time.time() 
+				
+				# run simulation
+				sim = run.Run(p)	
+
+				# end timer
+				end = time.time() 
+
+				# print trial and simulation time
+				print 'trial'+ str(tri) + ' duration:' + str(end -start) 
+				
+				# save data for eahc trial
+				run.save_data(sim.data)
+
+		self.p = p
+
 
 if __name__ =="__main__":
-	exp_3(trials=10,weights = [[.005*0.88,.2*.005*.88]])
-	dw = analysis.Weights(param.exp_3(exp='exp_5').p)
-	print np.mean(dw.w_end_all,axis=1)/.05 
-	analysis.Spikes(param.exp_3(exp='exp_5').p)
-	analysis.Voltage(param.exp_3(exp='exp_5').p)
+	kwargs = {
+	'exp' : 'exp_2', 
+	'tree' : 'apical_trunk', 
+	'trials' : 1, 
+	'w_mean' : [.002],
+	'w_std' : [.0002],
+	'w_rand' : False, 
+	'sec_idx' : [0], 
+	'seg_idx' : [[0]]
+	}
+	x = Experiment(**kwargs)
+	analysis.Voltage.plot_all(x.p)

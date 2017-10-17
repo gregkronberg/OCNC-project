@@ -176,6 +176,9 @@ class CellMigliore2005:
 				        	elif syn_key == 'clopath':
 				        		syn[sec_i].append(h.STDPSynCCNon(sec(seg.x)))
 
+class CellKim2015:
+	pass
+
 class Syn_act:
 	"""Activate a specific subset of synpases with NetCon objects
 	
@@ -188,13 +191,13 @@ class Syn_act:
 
 	The created NetCon objects are referenced by the nc object, which is organized the same way as syns, namely ['section tree']['synapse type'][section number][segment number][NetStim object]
 	"""
-	def __init__(self,syns,p,stim):
+	def __init__(self, syns, p, stim):
 		# store netcon objects ['tree']['syn type'][section][segment][list of netstim objects]
 		self.nc = {}
 		
 		# loop over synapse types
 		for tree_key,tree in syns.iteritems():
-			if tree_key == p['tree']:
+			if tree_key in p['tree']:
 				self.nc[tree_key] = {}
 
 				for syntype_key,syn_type in syns[tree_key].iteritems():
@@ -210,6 +213,8 @@ class Syn_act:
 
 							# loop over stimulation bursts
 							for syn_stim_i,syn_stim in enumerate(stim):
+								print syns[tree_key][syntype_key][sec][seg]
+								print p['w_list'][sec_i][seg_i]
 								self.nc[tree_key][syntype_key][sec_i][seg_i].append(
 									h.NetCon(syn_stim,syns[tree_key][syntype_key][sec][seg],0,0,p['w_list'][sec_i][seg_i]))
 

@@ -9,144 +9,123 @@ import numpy as np
 from neuron import h
 
 # extracellular field
-def dcs(field_angle,intensity,cell=0):
-    """
-    Apply DC extracellular field by inserting extracellular mechanism in each segment
+class DCS:
+    def __init__(self, cell=0, intensity=0, field_angle=0):
+        self.insert_e(cell=cell, intensity=intensity, field_angle=field_angle)
 
-    Arguments:
+    def insert_e(self, cell=0, intensity=0, field_angle=0):
+        
+        if cell == 0:
+            cell=[]
+            for sec in h.allsec():
+                cell.append(sec)
 
-    field_angle - angle relative to the somato-dendritic axis
-
-    intensity - stimulation intensity in V/m
-
-    cell - which cell to stimulate. if 0, stimulate all segments in the top level of hoc
-    """
-    
-    if cell == 0:
-        n_sec = 0
+        print cell
+        # structure to store location and e_extracellular for each segment.  Organized as ['dimension'][section number][segment number]
+        location = {'x':[], 'y':[],'z':[],'e':[]}
+        
         # loop over sections
-        for section in h.allsec():
+        for sec_i,sec in enumerate(cell):
+
+            # add list for each section to store data
+            for dim_key,dim in location.iteritems():
+                dim.append([])
+
+            # insert extracellular mechanism
+            sec.insert('extracellular')
+
+            # number of 3d points in section
+            n3d = int(h.n3d(sec=sec))
             
-            section.insert('extracellular')
-            n_sec += 1
-            n3d = int(h.n3d(sec=section))
-            
-            # find 3d position of each segment
-            for seg in section:
-                position_seg = seg.x            # relative position within section (0-1)
+            # xyz locations of segments
+            xyz = self.seg_location(sec)
+
+            # iterate over segments
+            for seg_i,seg in enumerate(sec):
+                # xyz location of each segment
+                seg_x = xyz[0][seg_i]
+                seg_y = xyz[1][seg_i]
+                seg_z = xyz[2][seg_i]
+
+                # if y location is negative shift phase by pi
+                if seg_y < 0:
+                    angle = angle+np.pi
+                
+                # absolute distance of segment from (0,0) in um
+                mag = np.sqrt(seg_x**2 + seg_y**2)
+                
+                # angle relative to electric field vector, zero angle means along somato-dendritic axis
+                angle_field = angle + field_angle
+                
+                # convert um to mm
+                conversion = .001 
+
+                # calculate extracellular potential
+                e = conversion*intensity*mag*np.cos(angle_field)
+
+                # insert calculated extracellular potential in mV
+                seg.e_extracellular = conversion*intensity*mag*np.cos(angle_field)
+
+    def seg_location(self, sec):
+        """ given a neuron section, output the 3d coordinates of each segment in the section
+
+        ouput is a nested list as [xyz dimension][segment number], with x,y, z dimensions listed in that order
+
+        """
+        # number of 3d points in section
+        n3d = int(h.n3d(sec=sec))
+        seg_x = []
+        seg_y = []
+        seg_z = []
+        for seg_i,seg in enumerate(sec):
+                # relative position within section (0-1)
+                seg_pos = seg.x            
                 # preallocate 3d coordinates
                 x = [None]*n3d
                 y = [None]*n3d
                 z = [None]*n3d
                 position_3d =  [None]*n3d
                                
-                # list all 3d coordinates in section
-                for i in range(0,n3d):
-                    x[i] = h.x3d(i,sec=section)
-                    y[i] = h.y3d(i,sec=section)
-                    z[i] = h.z3d(i,sec=section)
-                    # find distance of each coordinate from first node (section range)
-                    position_3d[i] =  np.sqrt((x[i]-x[0])**2 + (y[i]-y[0])**2 + (z[i]-z[0])**2)
+                # loop over 3d coordinates in each section
+                for i in range(n3d):
+                    # retrieve x,y,z
+                    x[i] = h.x3d(i,sec=sec)
+                    y[i] = h.y3d(i,sec=sec)
+                    z[i] = h.z3d(i,sec=sec)
+
+                    # calculate total distance of each 3d point from start of section
+                    if i is 0:
+                        position_3d[i] = 0
+                    else:
+                        position_3d[i] = position_3d[i-1] + np.sqrt((x[i]-x[i-1])**2 + (y[i]-y[i-1])**2 + (z[i]-z[i-1])**2)
                 
-                # segment location along section in 3D
-                temp1 = position_seg*position_3d[-1]
+                # segment distance along section in 3D
+                seg_dist = seg_pos*position_3d[-1]
                 # find first 3D coordinate that contains the segment
-                temp2 = [a for a in range(0,n3d) if  position_3d[a] >= temp1]
-                # if segment falls between two coordinates, interpolate to get location
-                if position_3d[temp2[0]] == temp1:
-                    seg_position_x,seg_position_y,seg_position_z = x[temp2[0]],z[temp2[0]],z[temp2[0]]
+                node_i = [dist_i for dist_i,dist in enumerate(position_3d) if dist >= seg_dist]
+                
+                # if segement occurs exactly at a node set its location to the node location
+                
+                if position_3d[node_i[0]] == seg_dist:
+                    seg_x,seg_y,seg_z = x[node_i[0]],z[node_i[0]],z[node_i[0]]
+                # otherwise if segment falls between two coordinates, interpolate to get location
                 else:
-                    seg_position_x = np.mean([x[temp2[0]],x[temp2[0]-1]])
-                    seg_position_y = np.mean([y[temp2[0]],y[temp2[0]-1]])
-                    seg_position_z = np.mean([z[temp2[0]],z[temp2[0]-1]])
-                 
-                # angle from somato-dendritic axis (neglect z axis)   
-                if seg_position_y == 0:
-                    angle = 0
-                elif np.isnan(seg_position_x/float(seg_position_y)):
-                    angle = 0
-                else:
-                    angle = np.arctan(seg_position_x/seg_position_y)
-                    
-                if seg_position_y < 0:
-                    angle = angle+np.pi
-                
-                    # distance of segment from (0,0)
-                mag = np.sqrt(seg_position_x**2 + seg_position_y**2)
-                
-                # angle relative to electric field vector
-                angle_field = angle + field_angle
-                
-                # insert calculate extracellular potential
-                seg.e_extracellular = .001*intensity*mag*np.cos(angle_field)
-                # print seg.e_extracellular
-    else:        
-        n_sec = 0
-        #sec_list = [None]
-        # loop over sections
-        for section in cell.all:
+                    seg_x.append( np.mean( [x[ node_i[0]], x[ node_i[0]-1]]))
+                    seg_y.append( np.mean( [y[ node_i[0]], y[ node_i[0]-1]]))
+                    seg_z.append( np.mean( [z[ node_i[0]], z[ node_i[0]-1]]))
+        return [seg_x,seg_y,seg_z]
             
-            section.insert('extracellular')
-            n_sec += 1
-            n3d = int(h.n3d(sec=section))
-            
-            # find 3d position of each segment
-            for seg in section:
-                position_seg = seg.x            # relative position within section (0-1)
-                # preallocate 3d coordinates
-                x = [None]*n3d
-                y = [None]*n3d
-                z = [None]*n3d
-                position_3d =  [None]*n3d
-                               
-                # list all 3d coordinates in section
-                for i in range(0,n3d):
-                    x[i] = h.x3d(i,sec=section)
-                    y[i] = h.y3d(i,sec=section)
-                    z[i] = h.z3d(i,sec=section)
-                    # find distance of each coordinate from first node (section range)
-                    position_3d[i] =  np.sqrt((x[i]-x[0])**2 + (y[i]-y[0])**2 + (z[i]-z[0])**2)
-                
-                # segment location along section in 3D
-                temp1 = position_seg*position_3d[-1]
-                # find first 3D coordinate that contains the segment
-                temp2 = [a for a in range(0,n3d) if  position_3d[a] >= temp1]
-                # if segment falls between two coordinates, interpolate to get location
-                if position_3d[temp2[0]] == temp1:
-                    seg_position_x,seg_position_y,seg_position_z = x[temp2[0]],z[temp2[0]],z[temp2[0]]
-                else:
-                    seg_position_x = np.mean([x[temp2[0]],x[temp2[0]-1]])
-                    seg_position_y = np.mean([y[temp2[0]],y[temp2[0]-1]])
-                    seg_position_z = np.mean([z[temp2[0]],z[temp2[0]-1]])
-                 
-                # angle from somato-dendritic axis (neglect z axis)   
-                if seg_position_y == 0:
-                    angle = 0
-                elif np.isnan(seg_position_x/float(seg_position_y)):
-                    angle = 0
-                else:
-                    angle = np.arctan(seg_position_x/seg_position_y)
-                    
-                if seg_position_y < 0:
-                    angle = angle+np.pi
-                
-                    # distance of segment from (0,0)
-                mag = np.sqrt(seg_position_x**2 + seg_position_y**2)
-                
-                # angle relative to electric field vector
-                angle_field = angle + field_angle
-                
-                # insert calculate extracellular potential
-                seg.e_extracellular = .001*intensity*mag*np.cos(angle_field)
-            
-class tbs:
+class Bipolar:
     """
     creates NetStim object for delivering theta burst stimulation
     """
-    def __init__(self,bursts=1,pulses=4,pulse_freq=100,burst_freq=5,warmup = 30):
+    def __init__(self):
+        pass
+
+    def tbs(self, bursts=1, pulses=4, pulse_freq=100, burst_freq=5, warmup=30):
         self.warmup = warmup   # warm up time (ms)
         self.stim  = [] # list of stim objects
-        for a in range(0,bursts): # create new object for each burst
+        for a in range(bursts): # create new object for each burst
             self.stim.append(h.NetStim())
             self.stim[a].start = self.warmup + a*1000/burst_freq # start of burst
             self.stim[a].interval = 1000/pulse_freq

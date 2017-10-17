@@ -37,20 +37,24 @@ class Run():
 
 	# update clopath parameters
 	def update_clopath(self,p,syns):
-		for sec_i,sec in enumerate(syns):
-			for seg_i,seg in enumerate(syns[sec_i]):
-				syns[sec_i][seg_i].delay_steps = p['clopath_delay_steps']
-				syns[sec_i][seg_i].tau_0 = p['clopath_tau_0']
-				syns[sec_i][seg_i].tau_r = p['clopath_tau_r']
-				syns[sec_i][seg_i].tau_y = p['clopath_tau_y']
-				syns[sec_i][seg_i].A_m = p['clopath_A_m']
-				syns[sec_i][seg_i].A_p = p['clopath_A_p']
-				syns[sec_i][seg_i].tetam = p['clopath_tetam']
-				syns[sec_i][seg_i].tetap = p['clopath_tetap']
+		# iterate over parameters
+		for parameter_key,parameter in p.iteritems():
+			# if it is a clopath learning rule parameter
+			if 'clopath_' in parameter_key:
+				# get parameter name
+				p_clopath = parameter_key[len('clopath_'):]
+				# iterate over sections
+				for sec_i,sec in enumerate(syns):
+					# iterate over segments
+					for seg_i,seg in enumerate(syns[sec_i]):
+						# set synapse parameter value
+						setattr(syns[sec_i][seg_i], p_clopath, p['clopath_'+p_clopath])
 
 	# activate synapses
 	def activate_synapses(self,p):
-		self.stim = stims.tbs(bursts=p['bursts'], warmup=p['warmup'], pulses=p['pulses']).stim
+		bipolar = stims.Bipolar()
+		bipolar.tbs(bursts=p['bursts'], warmup=p['warmup'], pulses=p['pulses'])
+		self.stim = bipolar.stim
 		self.nc = cell.Syn_act(p=p, syns=self.cell1.syns, stim=self.stim)
 
 	def shape_plot(self,p):
@@ -110,7 +114,7 @@ class Run():
 		for f_i,f in enumerate(p['field']):
 
 			# insert extracellular field
-			stims.dcs(cell=0,field_angle=p['field_angle'],intensity=f)
+			stims.DCS(cell=0, field_angle=p['field_angle'], intensity=f)
 			
 			# run time
 			h.dt = p['dt']
@@ -150,104 +154,15 @@ def save_data(data):	# save data
 	if os.path.isdir(p['data_folder']) is False:
 		os.mkdir(p['data_folder'])
 
-	with open(p['data_folder']+
-		'data_'+p['experiment']+
+	with open(p['data_folder']+'data_'+
+		p['experiment']+
 		'_trial_'+str(p['trial'])+
-		'_weight_'+str(p['w_mean'])
-		+'_synfrac_'+str(p['syn_frac'])+
-		p['trial_id']+
+		'_weight_'+str(p['w_mean'])+
+		'_synfrac_'+str(p['syn_frac'])+
+		'_'+p['trial_id']+
 		'.pkl', 'wb') as output:
 
 		pickle.dump(data, output,protocol=pickle.HIGHEST_PROTOCOL)
-
-# # plot control
-# def plot_sections(data_file,fig_folder):
-# 	"""
-# 	creates a single figure with subplots for each section to be recorded from
-# 	"""
-# 	# open data
-# 	data_file = p['data_folder']+'data_'+p['experiment']+'_trial_'+str(p['trial'])+'_weight_'+str(p['w_ampa'])
-
-# 	pkl_file = open(data_file, 'rb')
-	
-# 	data = pickle.load(pkl_file)
-	
-# 	# number of segments to plot
-# 	n_seg = len(data['params']['plot_seg_idx'])+1
-# 	# number of elements n in each dimension of n x n plot grid 
-# 	n = int(np.ceil(np.sqrt(n_seg)))
-# 	# create figure
-# 	fig = plt.figure(figsize=(10, 10))
-# 	# setup figure grid
-# 	gs = gridspec.GridSpec(n, n, wspace=0.10, hspace=0.05, left=0.1, right=0.95, bottom=0.1, top=0.95)
-# 	# dictionary for storing individual plots
-# 	ax = {}
-# 	# rows and columns
-# 	rows = np.arange(0, n, 1, dtype=int)
-# 	cols = np.arange(0, n, 1, dtype=int)
-# 	# loop over grid elements
-# 	for k, (i, j) in enumerate(it.product(rows, cols)):
-# 		if k < n_seg-2:
-# 			axh = "section-{:03d}".format(data['params']['sec_idx'][k])
-# 			ax[axh] = fig.add_subplot(gs[i:i+1, j:j+1])
-# 			ax[axh].text(0.05, 0.90, axh, transform=ax[axh].transAxes)
-# 			for exp in range(len(data['t'])):
-# 				plot_color = data['field_color'][exp]
-# 				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
-# 				# plot dendritic voltage
-# 				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['dend'][exp][k]),plot_color)
-		
-# 		elif k==n_seg-2:
-# 			axh = "section-{}".format('soma')
-# 			ax[axh] = fig.add_subplot(gs[i:i+1, j:j+1])
-# 			ax[axh].text(0.05, 0.90, axh, transform=ax[axh].transAxes)
-# 			for exp in range(len(data['t'])):
-# 				plot_color = data['field_color'][exp]
-# 				# plot soma voltage
-# 				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
-# 				# plot weight changes
-# 				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['weight'][exp][0]),plot_color)
-
-
-# 		elif k==n_seg-1:
-# 			axh = "section-{}".format('soma')
-# 			ax[axh] = fig.add_subplot(gs[i:i+1, j:j+1])
-# 			ax[axh].text(0.05, 0.90, axh, transform=ax[axh].transAxes)
-# 			for exp in range(len(data['t'])):
-# 				plot_color = data['field_color'][exp]
-# 				# plot soma voltage
-# 				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['soma'][exp]),plot_color)
-# 				# plot weight changes
-# 				ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['weight'][exp][0]),plot_color)
-# 				# plot dendritic voltage
-# 				# ax[axh].plot(np.transpose(data['t'][exp]), np.transpose(data['dend'][exp][k]),plot_color)
-
-# 	fig.savefig(p['fig_folder']+data['params']['experiment']+'_syn_'+str(len(data['params']['sec_idx']))+
-# 		'_trial_'+str(data['params']['trial'])+
-# 		'_weight_'+str(data['params']['w_ampa'])+'.png', dpi=250)
-# 	plt.close(fig)
-
-# # create and save shape plot
-# def shapeplot():
-# 		# shape plots
-# 		shapeplot.append(h.PlotShape())
-# 		shapeplot[cnt].color_list(sl,1)
-
-# 		shapeplot[cnt].variable('v')
-# 		h.fast_flush_list.append(shapeplot[cnt])
-# 		shapeplot[cnt].exec_menu('View = plot')
-# 		shapeplot[cnt].exec_menu('Shape Plot')
-# 		shapeplot[cnt].scale(-65, 10)
-# 		shapeplot[cnt].colormap(1,255,255,0)
-		
-# 		shapeplot[cnt].fastflush()
-
-# 		# pause simulation to view shape plot at specific time
-# 		h.load_file('interrupts_shapeflush.hoc')
-
-# 		# save shape plot
-# 		pwm = h.PWManager()
-# 		pwm.printfile('shapeplot_'+p['experiment']+'_trial_'+str(p['trial'])+'.eps', 0, 0)
 
 # procedures to be initialized if called as a script
 if __name__ =="__main__":
