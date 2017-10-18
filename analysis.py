@@ -13,6 +13,7 @@ import os
 import cPickle as pickle
 import param
 import math
+import run_control
 
 
 class Weights():
@@ -365,7 +366,7 @@ class Voltage():
 	"""
 	def __init__(self):
 		pass
-		
+
 	def plot_all(self, p):
 		"""
 		"""
@@ -393,15 +394,19 @@ class Voltage():
 		# number field intensities/polarities
 		n_pol = len(p['field'])
 		# number of segments to plot
-		nseg =  sum([sum(seg for seg in sec) for sec in seg_idx])
+		nseg =  sum([sum(seg_i for seg_i,seg in enumerate(sec)) for sec in seg_idx])+1
+		
 		if soma:
 			nseg+=1
-		cols = math.ceil(math.sqrt(nseg))
-		rows = math.ceil(math.sqrt(nseg))
+		cols = int(math.ceil(math.sqrt(nseg)))
+		rows = int(math.ceil(math.sqrt(nseg)))
 		# create plot array, axes is a list of figures in the array
-		fig, axes = plt.subplots(rows, cols, )
+		# fig, axes = plt.subplots(rows, cols )
+
+		fig = plt.figure()
+		
 		# count segments
-		cnt=-1
+		cnt=0
 		# iterate over sections
 		for sec_i,sec in enumerate(seg_idx):
 			# iterate over segments
@@ -416,23 +421,33 @@ class Voltage():
 					# voltage vector
 					if soma and cnt<nseg:
 						v = data[tree+'_v'][pol][sec_idx[sec_i]][seg]
-					# last plot is soma 
-					elif soma and cnt==nseg: 
-						v = data['soma_v'][pol][0][0] 
-					
+
 					color = p['field_color'][pol]
 					
 					# add to corrsponding axis
-					axes[cnt].plot(t, v, color=color)
+					plt.subplot(rows, cols, cnt)
+					plt.plot(t, v, color=color)
+		
+		for pol in range(n_pol):
+			# soma
+			v = data['soma_v'][pol][0][0] 
+			
+			color = p['field_color'][pol]
+			
+			# add to corrsponding axis
+			plt.subplot(rows, cols, nseg)
+			plt.plot(t, v, color=color)
 		
 		# save and close figure
-		fig.savefig(p['data_folder']+'_trace_'+p['trial_id']+'.png', dpi=300)
-		plt.close(self.fig_dend_trace)
+		fig.savefig(p['data_folder']+p['experiment']+'_'+p['tree']+'_trace_'+p['trial_id']+'.png', dpi=300)
+		plt.close(fig)
 
 if __name__ =="__main__":
 	# Weights(param.exp_3().p)
 	# Spikes(param.exp_3().p)
-	Voltage(param.exp_3(exp='exp_5').p)
+	kwargs = run_control.Arguments('exp_2').kwargs
+	plots = Voltage()
+	plots.plot_all(param.Experiment(**kwargs).p)
 
 
 

@@ -127,9 +127,11 @@ class CellMigliore2005:
 					# h-current
 				    sec.insert('hd')
 				    sec.ghdbar_hd = p['ghd']
+				    
 				    # voltage gated sodium		
 				    sec.insert('na3')
-				    sec.gbar_na3 = p['gna']	
+				    sec.gbar_na3 = p['gna']
+
 				    # delayed rectifier potassium	
 				    sec.insert('kdr')
 				    sec.gkdrbar_kdr = p['gkdr']	
@@ -150,6 +152,9 @@ class CellMigliore2005:
 				    	
 				    	# distance from soma
 				    	seg_dist = h.distance(seg.x,sec=sec)
+				    	
+				    	# sodium
+				    	seg.gbar_na3 = p['gna'] + p['dgna']*seg_dist
 				    	
 				    	# h current
 				    	seg.ghdbar_hd = p['ghd']*(1+3*seg_dist/100)
@@ -213,8 +218,6 @@ class Syn_act:
 
 							# loop over stimulation bursts
 							for syn_stim_i,syn_stim in enumerate(stim):
-								print syns[tree_key][syntype_key][sec][seg]
-								print p['w_list'][sec_i][seg_i]
 								self.nc[tree_key][syntype_key][sec_i][seg_i].append(
 									h.NetCon(syn_stim,syns[tree_key][syntype_key][sec][seg],0,0,p['w_list'][sec_i][seg_i]))
 

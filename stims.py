@@ -20,7 +20,6 @@ class DCS:
             for sec in h.allsec():
                 cell.append(sec)
 
-        print cell
         # structure to store location and e_extracellular for each segment.  Organized as ['dimension'][section number][segment number]
         location = {'x':[], 'y':[],'z':[],'e':[]}
         
@@ -47,6 +46,13 @@ class DCS:
                 seg_y = xyz[1][seg_i]
                 seg_z = xyz[2][seg_i]
 
+                # angle of segment from somato-dendritic axis (neglect z axis)   
+                if seg_y == 0:
+                    angle = 0
+                elif np.isnan(seg_x/float(seg_y)):
+                    angle = 0
+                else:
+                    angle = np.arctan(seg_x/seg_y)
                 # if y location is negative shift phase by pi
                 if seg_y < 0:
                     angle = angle+np.pi

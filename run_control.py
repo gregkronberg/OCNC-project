@@ -116,17 +116,28 @@ class Experiment:
 
 		self.p = p
 
+class Arguments:
+	"""
+	"""
+	def __init__(self, exp):
+		experiment = getattr(self, exp)
+
+		experiment() 
+
+	def exp_2(self):
+		self.kwargs = {
+		'exp' : 'exp_2', 
+		'tree' : 'apical_trunk',
+		'trials' : 1,
+		'w_mean' : [.0075],
+		'w_std' : [.0002],
+		'w_rand' : False, 
+		'sec_idx' : [-1], 
+		'seg_idx' : [[-1]]
+		}
 
 if __name__ =="__main__":
-	kwargs = {
-	'exp' : 'exp_2', 
-	'tree' : 'apical_trunk', 
-	'trials' : 1, 
-	'w_mean' : [.002],
-	'w_std' : [.0002],
-	'w_rand' : False, 
-	'sec_idx' : [0], 
-	'seg_idx' : [[0]]
-	}
+	kwargs = Arguments('exp_2').kwargs
 	x = Experiment(**kwargs)
-	analysis.Voltage.plot_all(x.p)
+	plots = analysis.Voltage()
+	plots.plot_all(x.p)

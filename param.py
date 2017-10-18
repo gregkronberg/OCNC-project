@@ -142,7 +142,7 @@ class Experiment:
 			'sec_idx': [],
 			'seg_idx':[],
 			'field_angle':0,
-			'field':[-20,0,20],
+			'field':[-100,0,100],
 			'field_color':['r','k','b'],
 			'dt' : .025,
 			'warmup': 30,
@@ -178,6 +178,7 @@ class Experiment:
 			# *** units in paper are a typo, values are already reported in (mho/cm2) ***
 			'Vrest' : -65,				# resting potential (mV)
 			'gna' : .25,				# peak sodium conductance (mho/cm2)
+			'dgna' : -.000025			# change in sodium conductance with distance (ohm/cm2/um)
 			'ena' : 55,					# sodium reversal potential (mV)
 			'AXONM' : 5,				# multiplicative factor for axonal conductance
 			'gkdr' : 0.1,				# delayed rectifier potassium peak conductance (mho/cm2)
