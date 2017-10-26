@@ -17,7 +17,7 @@ NEURON {
        RANGE tau, e, i : the parameters dealing with the original synapse
        RANGE A_m, A_p, tau_y, tetam,tetap,tau_r,tau_0 : claudia's model
        RANGE t_last_pre : 0 without presynaptic spike, 1 when a presynaptic spike occured
-       RANGE u_m1, u_m2,r,g_update,gbar
+       RANGE u_m1, u_m2,r,g_update,gbar, u_sig, u_m2_sig
        RANGE delay_steps,delay_array_u_m1, delay_array_u_m2, pointless_counter 
        RANGE um2s,um1s
        NONSPECIFIC_CURRENT i
@@ -130,6 +130,7 @@ DERIVATIVE state {
 	  r' = (x-r)/ tau_r
 	  g_update = - A_m*x*u_m1_sig + A_p*u_sig*r*u_m2_sig 
 	  gbar = gbar + g_update
+
 
 	  : avoid interference of the AP
 	  set_loc = fmod(pointless_counter,delay_steps)

@@ -10,6 +10,9 @@ from neuron import h
 
 # extracellular field
 class DCS:
+    """
+    assumes somatodendritic axis is aligned vertically, y is positive for apical dendrites, y is negative for basal dendrites
+    """
     def __init__(self, cell=0, intensity=0, field_angle=0):
         self.insert_e(cell=cell, intensity=intensity, field_angle=field_angle)
 
@@ -38,6 +41,7 @@ class DCS:
             
             # xyz locations of segments
             xyz = self.seg_location(sec)
+            # print sec.name(), xyz
 
             # iterate over segments
             for seg_i,seg in enumerate(sec):
@@ -54,7 +58,8 @@ class DCS:
                 else:
                     angle = np.arctan(seg_x/seg_y)
                 # if y location is negative shift phase by pi
-                if seg_y < 0:
+                # FIXME
+                if seg_y < -0.001:
                     angle = angle+np.pi
                 
                 # absolute distance of segment from (0,0) in um
@@ -62,7 +67,6 @@ class DCS:
                 
                 # angle relative to electric field vector, zero angle means along somato-dendritic axis
                 angle_field = angle + field_angle
-                
                 # convert um to mm
                 conversion = .001 
 
@@ -72,6 +76,8 @@ class DCS:
                 # insert calculated extracellular potential in mV
                 seg.e_extracellular = conversion*intensity*mag*np.cos(angle_field)
 
+                # print sec.name(), seg_y, seg.x, seg.e_extracellular
+
     def seg_location(self, sec):
         """ given a neuron section, output the 3d coordinates of each segment in the section
 
@@ -79,47 +85,60 @@ class DCS:
 
         """
         # number of 3d points in section
-        n3d = int(h.n3d(sec=sec))
+        tol =.001
+        n3d = int( h.n3d( sec=sec))
+        
+        # preallocate 3d coordinates
+        x = [None]*n3d
+        y = [None]*n3d
+        z = [None]*n3d
+        position_3d =  [None]*n3d
+                       
+        # loop over 3d coordinates in each section
+        for i in range(n3d):
+            # retrieve x,y,z
+            x[i] = h.x3d(i, sec=sec)
+            y[i] = h.y3d(i, sec=sec)
+            z[i] = h.z3d(i, sec=sec)
+
+            # calculate total distance of each 3d point from start of section
+            if i is 0:
+                position_3d[i] = 0
+            else:
+                position_3d[i] = position_3d[i-1] + np.sqrt((x[i]-x[i-1])**2 + (y[i]-y[i-1])**2 + (z[i]-z[i-1])**2)
+        
         seg_x = []
         seg_y = []
         seg_z = []
         for seg_i,seg in enumerate(sec):
                 # relative position within section (0-1)
                 seg_pos = seg.x            
-                # preallocate 3d coordinates
-                x = [None]*n3d
-                y = [None]*n3d
-                z = [None]*n3d
-                position_3d =  [None]*n3d
-                               
-                # loop over 3d coordinates in each section
-                for i in range(n3d):
-                    # retrieve x,y,z
-                    x[i] = h.x3d(i,sec=sec)
-                    y[i] = h.y3d(i,sec=sec)
-                    z[i] = h.z3d(i,sec=sec)
-
-                    # calculate total distance of each 3d point from start of section
-                    if i is 0:
-                        position_3d[i] = 0
-                    else:
-                        position_3d[i] = position_3d[i-1] + np.sqrt((x[i]-x[i-1])**2 + (y[i]-y[i-1])**2 + (z[i]-z[i-1])**2)
                 
                 # segment distance along section in 3D
                 seg_dist = seg_pos*position_3d[-1]
+
                 # find first 3D coordinate that contains the segment
                 node_i = [dist_i for dist_i,dist in enumerate(position_3d) if dist >= seg_dist]
                 
                 # if segement occurs exactly at a node set its location to the node location
-                
-                if position_3d[node_i[0]] == seg_dist:
-                    seg_x,seg_y,seg_z = x[node_i[0]],z[node_i[0]],z[node_i[0]]
+                if abs(position_3d[node_i[0]] - seg_dist) < tol:
+                    seg_x.append( x[ node_i[ 0]])
+                    seg_y.append( z[ node_i[ 0]])
+                    seg_z.append( z[ node_i[ 0]])
+
                 # otherwise if segment falls between two coordinates, interpolate to get location
+                # FIXME clean up
                 else:
-                    seg_x.append( np.mean( [x[ node_i[0]], x[ node_i[0]-1]]))
-                    seg_y.append( np.mean( [y[ node_i[0]], y[ node_i[0]-1]]))
-                    seg_z.append( np.mean( [z[ node_i[0]], z[ node_i[0]-1]]))
-        return [seg_x,seg_y,seg_z]
+                    pt1 = position_3d[ node_i[0]-1]
+                    pt2 = position_3d[ node_i[0]]
+                    scale = (seg_dist-pt1) / (pt2-pt1)
+                    interpx = x[ node_i[0]-1] + scale*( x[ node_i[0]] - x[ node_i[0]-1])
+                    interpy = y[ node_i[0]-1] + scale*( y[ node_i[0]] - y[ node_i[0]-1])
+                    interpz = z[ node_i[0]-1] + scale*( z[ node_i[0]] - z[ node_i[0]-1])
+                    seg_x.append( interpx)
+                    seg_y.append( interpy)
+                    seg_z.append( interpz)
+        return [seg_x, seg_y, seg_z]
             
 class Bipolar:
     """

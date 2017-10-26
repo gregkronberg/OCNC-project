@@ -24,10 +24,12 @@ class Weights():
 	"""
 	def __init__(self,p):
 		self.n_pol = len(p['field'])
+
+	def dw(self, p):
 		self.group_dw(p)
 		self.save_dw(p)
-		self.plot_dw_all(p,self.w_end_all)
-		self.plot_dw_mean(p,self.w_end_all)
+		self.plot_dw_all(p, self.w_end_all)
+		self.plot_dw_mean(p, self.w_end_all)
 
 	def group_dw(self,p):
 		# arrays for storing all weight changes across neurons
@@ -59,7 +61,7 @@ class Weights():
 				# # close pickle file
 				# pkl_file.close()
 
-	def measure_dw(self,data):
+	def measure_dw(self, data):
 		# set up arrays to record final and initial weights at each active synapse
 		self.w_end = np.empty([self.n_pol,self.n_act_seg]) # polarity x segments
 		self.w_start = np.empty([self.n_pol,self.n_act_seg]) # polarity x segments
@@ -111,7 +113,10 @@ class Spikes():
 	"""
 	detect spikes and determine where they originated
 	"""
-	def __init__(self,p):
+	def __init__(self):
+		pass
+
+	def analysis_function(self, p):
 		self.initialize_vectors(p)
 		self.group_spikes(p)
 		self.spike_start(p)
@@ -394,8 +399,8 @@ class Voltage():
 		# number field intensities/polarities
 		n_pol = len(p['field'])
 		# number of segments to plot
-		nseg =  sum([sum(seg_i for seg_i,seg in enumerate(sec)) for sec in seg_idx])+1
-		
+		nseg =  sum([sum(seg_i+1 for seg_i,seg in enumerate(sec)) for sec in seg_idx])+1
+
 		if soma:
 			nseg+=1
 		cols = int(math.ceil(math.sqrt(nseg)))
@@ -407,16 +412,21 @@ class Voltage():
 		
 		# count segments
 		cnt=0
+		t = data['t'][0]
 		# iterate over sections
 		for sec_i,sec in enumerate(seg_idx):
 			# iterate over segments
 			for seg in sec:
 				cnt+=1
+				seg_dist = p['seg_dist'][p['tree']][sec_idx[sec_i]][seg]
+				plt.subplot(rows, cols, cnt)
+				plt.title(str(seg_dist))
+				# plt.ylim([-70, -50])
 				# iterate over stimulation polarity
 				for pol in range(n_pol):
 					
 					# time vector
-					t = data['t'][pol]
+					# t = data['t'][pol]
 					
 					# voltage vector
 					if soma and cnt<nseg:
@@ -424,9 +434,11 @@ class Voltage():
 
 					color = p['field_color'][pol]
 					
+					
 					# add to corrsponding axis
-					plt.subplot(rows, cols, cnt)
+					
 					plt.plot(t, v, color=color)
+					
 		
 		for pol in range(n_pol):
 			# soma
@@ -437,17 +449,214 @@ class Voltage():
 			# add to corrsponding axis
 			plt.subplot(rows, cols, nseg)
 			plt.plot(t, v, color=color)
+			plt.title('soma')
+			# plt.ylim([-70, -50])
 		
 		# save and close figure
 		fig.savefig(p['data_folder']+p['experiment']+'_'+p['tree']+'_trace_'+p['trial_id']+'.png', dpi=300)
 		plt.close(fig)
 
+class Shapeplot():
+	""" create shape plot 
+	"""
+	pass
+
+class Experiment:
+	"""analyses for individual experiments
+	"""
+	def __init__(self, **kwargs):
+		experiment = getattr(self, kwargs['exp'])
+
+		experiment(**kwargs) 
+
+	def exp_1(self, **kwargs):
+		""" 
+		plot average weight change as a function of distance from soma 
+		"""
+		npol = 3 
+		control_idx = 1
+		data_folder = 'Data/'+kwargs['exp']+'/'
+		files = os.listdir(data_folder)
+		dw = np.zeros([npol, len(files)])
+		syn_weight = np.zeros([1,len(files)])
+		w = {'cell_list' : [],
+		'weight_list' : [],
+		'syn_frac_list' : [] }
+		spikes = Spikes()
+		fig3 = plt.figure(3)
+		fig4 = plt.figure(4)
+		for data_file_i, data_file in enumerate(files):
+			if 'data' in data_file:
+
+				with open(data_folder+data_file, 'rb') as pkl_file:
+					data = pickle.load(pkl_file)
+				p = data['p']
+				cell_id = p['trial_id']
+				w['cell_list'].append(cell_id)
+				w['weight_list'].append(p['w_mean'])
+				w['syn_frac_list'].append(p['syn_frac'])
+
+
+				fig1 = plt.figure(1)
+				fig2 = plt.figure(2)
+				
+				w[cell_id]=[]
+				corr_win = int(p['warmup']/p['dt'])
+				
+				for field_i, field in enumerate(p['field']):
+					w[cell_id].append([])
+					spike_t_soma = spikes.detect_spikes(data['soma'+'_v'][field_i][0][0])['times']
+					spike_train_soma = spikes.detect_spikes(data['soma'+'_v'][field_i][0][0])['train']
+					for sec_i, sec in enumerate(p['sec_idx']):
+						w[cell_id][field_i].append([])
+						for seg_i,seg in enumerate(p['seg_idx'][sec_i]):
+							w_end = data[p['tree']+'_w'][field_i][sec][seg][-1]
+							w_start = data[p['tree']+'_w'][field_i][sec][seg][0]
+							dw = w_end/w_start
+							seg_dist = p['seg_dist'][p['tree']][sec][seg]
+							spike_t = spikes.detect_spikes(data[p['tree']+'_v'][field_i][sec][seg])['times']
+							spike_train = spikes.detect_spikes(data[p['tree']+'_v'][field_i][sec][seg])['train']
+							w[cell_id][field_i][sec_i].append({})
+							w[cell_id][field_i][sec_i][seg_i]['dw'] = dw
+							w[cell_id][field_i][sec_i][seg_i]['seg_dist'] = seg_dist
+							# measure spike times
+							w[cell_id][field_i][sec_i][seg_i]['spike_t'] = spike_t
+							w[cell_id][field_i][sec_i][seg_i]['spike_train'] = spike_train
+							# spike cross correlation with soma
+							# print spike_train_soma.shape
+							# print spike_train.shape
+							spike_xcorr = np.correlate(spike_train_soma[0,:], spike_train[0,:], mode='full')
+							w[cell_id][field_i][sec_i][seg_i]['spike_xcorr'] = spike_xcorr
+							plt.figure(1)
+							plt.plot(seg_dist, dw, '.', color=p['field_color'][field_i])
+							plt.figure(2)
+							plt.plot(p['dt']*(np.arange(spike_xcorr.size)-spike_xcorr.size/2), spike_xcorr, color=p['field_color'][field_i])
+							plt.figure(3)
+							plt.plot(seg_dist, dw, '.', color=p['field_color'][field_i])
+
+				for field_i, field in enumerate(p['field']):
+					for sec_i, sec in enumerate(p['sec_idx']):
+						for seg_i,seg in enumerate(p['seg_idx'][sec_i]):
+							w[cell_id][field_i][sec_i][seg_i]['dw_effect'] = w[cell_id][field_i][sec_i][seg_i]['dw']/w[cell_id][control_idx][sec_i][seg_i]['dw']
+							plt.figure(4)
+							plt.plot(w[cell_id][field_i][sec_i][seg_i]['seg_dist'], w[cell_id][field_i][sec_i][seg_i]['dw_effect'], '.', color=p['field_color'][field_i])
+
+				plt.figure(1)			
+				plt.xlabel('distance from soma um')
+				plt.ylabel('weight change')
+				fig1.savefig(data_folder+'fig_dw_dist_'+cell_id+'.png', dpi=300)
+				plt.close(fig1)
+				plt.figure(2)			
+				plt.xlabel('delay (ms)')
+				plt.ylabel('correlation')
+				fig2.savefig(data_folder+'fig_xcorr_'+cell_id+'.png', dpi=300)
+				plt.close(fig2)
+		print w['weight_list']
+		# mean for across cells and synapses
+		w_all = {}
+		w_all_mean ={}
+		w_all_sem = {}
+		w_all_std = {}
+		for weight_i, weight in enumerate(set(w['weight_list'])):
+			weight_key = str(weight)
+			w_all[weight_key]={}
+			w_all_mean[weight_key]={}
+			w_all_sem[weight_key]={}
+			w_all_std[weight_key]={}
+			for syn_frac_i, syn_frac in enumerate(set(w['syn_frac_list'])):
+				syn_frac_key = str(syn_frac)
+				w_all[weight_key][syn_frac_key]=[]
+				w_all_mean[weight_key][syn_frac_key] = np.zeros([3,1])
+				w_all_std[weight_key][syn_frac_key] = np.zeros([3,1])
+				w_all_sem[weight_key][syn_frac_key] = np.zeros([3,1])
+				for field_i in range(npol):
+					w_all[weight_key][syn_frac_key].append([])
+					for cell_key, cell in w.iteritems():
+						if cell_key not in ['cell_list', 'weight_list', 'syn_frac_list']: 
+							for sec_i, sec in enumerate(cell[field_i]):
+								for seg_i,seg in enumerate(sec):
+									cell_num = [cell_id_i for cell_id_i, cell_id in enumerate(w['cell_list']) if cell_id is cell_key][0]
+									print cell_num
+									if (w['weight_list'][cell_num] == weight) and (w['syn_frac_list'][cell_num]) == syn_frac:
+										w_all[weight_key][syn_frac_key][field_i].append( seg['dw'])
+					w_all[weight_key][syn_frac_key][field_i] = np.array(w_all[weight_key][syn_frac_key][field_i])
+					print w_all[weight_key][syn_frac_key][field_i].shape
+					w_all_mean[weight_key][syn_frac_key][field_i] = np.mean(w_all[weight_key][syn_frac_key][field_i])
+					w_all_sem[weight_key][syn_frac_key][field_i] = stats.sem(w_all[weight_key][syn_frac_key][field_i])
+					w_all_std[weight_key][syn_frac_key][field_i] = np.std(w_all[weight_key][syn_frac_key][field_i])
+				fig5 = plt.figure(5)
+				for field_i in range(npol):
+					plt.plot(w_all_mean[weight_key][syn_frac_key][field_i], '.', color=p['field_color'][field_i])
+			
+				plt.ylabel('weight change')
+				fig5.savefig(data_folder+'fig_dw_mean'+'_weight_'+weight_key+'syn_frac_'+syn_frac_key+'.png', dpi=300)
+				plt.close(fig5)
+
+
+		plt.figure(3)			
+		plt.xlabel('distance from soma um')
+		plt.ylabel('weight change')
+		fig3.savefig(data_folder+'fig_dw_dist_all'+'.png', dpi=300)
+		plt.close(fig3)
+
+		plt.figure(4)			
+		plt.xlabel('distance from soma um')
+		plt.ylabel('dcs effect (dw field/control)')
+		fig4.savefig(data_folder+'fig_dw_effect_dist_all'+'.png', dpi=300)
+		plt.close(fig4)
+
+				# plot weight cchange as a function of distance for all cells
+
+
+
+		# iterate over data files
+		# iterate over synapses
+				# if active
+						# store weight change
+						# store spike time
+						# store distance from soma
+						# store in ['cell identifier'][tree][section][segment]['varaiable']
+	
+
+	def exp_2(self, **kwargs):
+		npol = 3 
+		data_folder = 'Data/'+kwargs['exp']+'/'
+		files = os.listdir(data_folder)
+		dw = np.zeros([npol, len(files)])
+		syn_weight = np.zeros([1,len(files)])
+		for data_file_i, data_file in enumerate(files):
+			# check for proper data file format
+			if 'data' in data_file:
+
+				with open(data_folder+data_file, 'rb') as pkl_file:
+					data = pickle.load(pkl_file)
+				p = data['p']
+
+				for field_i, field in enumerate(p['field']):
+					for sec_i,sec in enumerate(p['sec_idx']):
+						for seg_i,seg in enumerate(p['seg_idx'][sec_i]):
+							w_end = data[p['tree']+'_w'][field_i][sec][seg][-1]
+							w_start = data[p['tree']+'_w'][field_i][sec][seg][0]
+							dw[field_i,data_file_i] = w_end/w_start
+							syn_weight[0,data_file_i] = p['w_list'][sec_i][seg]
+
+
+		fig = plt.figure()
+		for pol in range(npol):
+				plt.plot(syn_weight[0,:], dw[pol, :], '.', color=p['field_color'][pol])
+		plt.xlabel('peak conductance (uS)')
+		plt.ylabel('weight change')
+		fig.savefig(data_folder+'fig_dw'+'.png', dpi=250)
+		plt.close(fig)
+
+
 if __name__ =="__main__":
 	# Weights(param.exp_3().p)
-	# Spikes(param.exp_3().p)
-	kwargs = run_control.Arguments('exp_2').kwargs
-	plots = Voltage()
-	plots.plot_all(param.Experiment(**kwargs).p)
+	# # Spikes(param.exp_3().p)
+	# kwargs = run_control.Arguments('exp_2').kwargs
+	# plots = Voltage()
+	# plots.plot_all(param.Experiment(**kwargs).p)
+	Experiment(exp='exp_1')
 
 
 

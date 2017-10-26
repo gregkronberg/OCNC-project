@@ -26,11 +26,12 @@ class Run():
 	data is organized as data['type of data'][experiments][sections][time series data vector]
 	details of each experiment are tracked via the data['detail'][experiment number], e.g. data['field'][2]
 	"""
-	def __init__(self,p):
+	def __init__(self, p):
 
 		# create cell
-		self.cell1 = cell.CellMigliore2005(p)
-		self.update_clopath(p,syns=self.cell1.syns[p['tree']]['clopath'])
+		# self.cell1 = cell.CellMigliore2005(p)
+		self.cell1 = cell.PyramidalCell(p)
+		self.update_clopath( p, syns=self.cell1.syns[p['tree']]['clopath'])
 		self.activate_synapses(p)
 		self.recording_vectors(p)
 		self.run_sims(p)
@@ -53,7 +54,7 @@ class Run():
 	# activate synapses
 	def activate_synapses(self,p):
 		bipolar = stims.Bipolar()
-		bipolar.tbs(bursts=p['bursts'], warmup=p['warmup'], pulses=p['pulses'])
+		bipolar.tbs(bursts=p['bursts'], warmup=p['warmup'], pulses=p['pulses'], pulse_freq=p['pulse_freq'])
 		self.stim = bipolar.stim
 		self.nc = cell.Syn_act(p=p, syns=self.cell1.syns, stim=self.stim)
 
@@ -63,7 +64,7 @@ class Run():
 		
 		# create section list of active sections
 		self.sl = h.SectionList()    # secetion list of included sections
-		for seec_i,sec in enumerate(p['seg_idx']):
+		for sec_i,sec in enumerate(p['sec_idx']):
 			self.sl.append(sec=self.cell1.geo[p['tree']][sec])
 			self.shapeplot.color(2, sec=self.cell1.geo[p['tree']][sec])
 

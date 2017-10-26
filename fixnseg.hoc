@@ -38,7 +38,7 @@ func lambda_f() { local i, x1, x2, d1, d2, lam
 }
 
 proc geom_nseg() {
-  soma area(0.5) // make sure diam reflects 3d points
+  //soma area(0.5) // make sure diam reflects 3d points
   forall { nseg = int((L/(d_lambda*lambda_f(freq))+0.9)/2)*2 + 1  }
 }
 

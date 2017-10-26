@@ -7,6 +7,194 @@ import matplotlib.pyplot as plt
 from neuron import h
 import stims
 
+class PyramidalCell:
+	""" 4 compartment pyramidal cell
+	"""
+	def __init__(self, p):
+		self.geometry(p)
+		self.mechanisms(p)
+
+	def geometry(self, p):
+		"""
+		areas determined from cell geo5038804 from Migliore 2005
+		basal: 19966.3598 um2
+		apical: 23700.5664916 (tuft) + 11461.4440485 (trunk) = 35162.0105401 um2
+		soma: 176.290723263 um2
+		axon: 305.021056197 um2
+		"""
+		# list sections
+		trees = ['basal', 'soma', 'apical_prox', 'apical_dist']
+		areas = [19966.36, 176.29, 35162.01/2., 35162.01/2.]
+
+		# store geometry
+		self.geo = {}
+		# store synapses
+		self.syns = {}
+		# create sections
+		for tree_i, tree in enumerate(trees):
+			self.geo[tree] = []
+			self.syns[tree] = {
+			'ampa' : [],
+			'nmda' : [],
+			'clopath' : []
+			}
+			for sec_i in range(p['nsec_'+tree]):
+				self.geo[tree].append( h.Section( name=tree))
+
+				# diameter basd on area of full morphology
+				diam = areas[tree_i]/(np.pi*p['L_'+tree])
+				print diam
+				p['diam_'+tree] = diam
+				# create 3d specification, with cell arranged vertically
+				h.pt3dadd(0, 0, 0, diam, sec=self.geo[tree][sec_i])
+				if tree=='basal':
+					h.pt3dadd(0, -p['L_'+tree], 0, diam, sec=self.geo[tree][sec_i])
+				else:
+					h.pt3dadd(0, p['L_'+tree], 0, diam, sec=self.geo[tree][sec_i])
+
+				# add list to store synapses for each section
+				for syn_key, syn in self.syns[tree].iteritems():
+					syn.append([])
+
+				self.geo[tree][sec_i].insert('pas')
+				# passive conductance (S/cm2)
+				self.geo[tree][sec_i].g_pas = 1/p['RmAll']			
+				# leak reversal potential (mV)	
+				self.geo[tree][sec_i].e_pas = p['Vrest']				
+				# specific capacitance (uf/cm2)
+				self.geo[tree][sec_i].cm = p['Cm'] 			
+				# axial resistance (ohm cm) 		
+				self.geo[tree][sec_i].Ra = p['RaAll'] 
+
+				self.geo[tree][sec_i].L = p['L_'+tree]
+				self.geo[tree][sec_i].diam = p['diam_'+tree]
+
+		self.geo['basal'][0].connect(self.geo['soma'][0](0),0)
+		self.geo['apical_prox'][0].connect(self.geo['soma'][0](1),0)
+		self.geo['apical_dist'][0].connect(self.geo['apical_prox'][0](1),0)
+
+
+		# self.rotate(theta=np.pi/2.)
+		h.PlotShape()
+		h.xopen('fixnseg.hoc')
+
+		h.PlotShape()
+
+
+		# set temperature in hoc
+		h.celsius = p['celsius']
+		# set soma as origin for distance measurements
+		h.distance(sec=self.geo['soma'][0])
+	
+	def measure_area(self, p):
+		cell_temp = CellMigliore2005(p)
+		area={}
+		for tree_key, tree in cell_temp.geo.iteritems():
+			area[tree_key] = cell_temp.measure_area(tree)
+			
+		return area
+
+
+	def rotate(self, theta):
+		"""Rotate the cell about the Z axis.
+		"""
+		for sec in h.allsec():
+			for i in range(int(h.n3d(sec=sec))):
+				x = h.x3d(i, sec=sec)
+				y = h.y3d(i, sec=sec)
+				c = np.cos(theta)
+				s = np.sin(theta)
+				xprime = x * c - y * s
+				yprime = x * s + y * c
+				h.pt3dchange(i, xprime, yprime, h.z3d(i, sec=sec), h.diam3d(i, sec=sec), sec=sec)
+
+	def mechanisms(self, p):
+		for tree_key, tree in self.geo.iteritems():
+			for sec_i, sec in enumerate(tree): 
+
+				if tree_key == 'soma':
+					# voltage gated sodium
+					sec.insert('na3')
+					sec.gbar_na3 = p['gna']	
+					# h-current			
+					sec.insert('hd')
+					sec.ghdbar_hd = p['ghd']				
+					sec.vhalfl_hd = p['vhalfl_prox']
+					# delayed rectifier potassium		
+					sec.insert('kdr')
+					sec.gkdrbar_kdr = p['gkdr']	
+					# a-type potassium		
+					sec.insert('kap')
+					sec.gkabar_kap = p['KMULTP']
+					# sodium reversal potential 
+					sec.ena = p['ena']		
+					# potassium reversal potential 
+					sec.ek = p['ek']
+					# dendrites active biophysics
+				
+				elif ((tree_key == 'basal') or 
+				(tree_key == 'apical_prox') or 
+				(tree_key == 'apical_dist')):
+
+					# h-current
+				    sec.insert('hd')
+				    sec.ghdbar_hd = p['ghd']
+				    
+				    # voltage gated sodium		
+				    sec.insert('na3')
+				    sec.gbar_na3 = p['gna']
+
+				    # delayed rectifier potassium	
+				    sec.insert('kdr')
+				    sec.gkdrbar_kdr = p['gkdr']	
+				    # a-type potassium proximal
+				    sec.insert('kap')
+				    sec.gkabar_kap = 0	
+				    # a-type potassium distal		
+				    sec.insert('kad')
+				    sec.gkabar_kad = 0	
+				    # sodium reversal potential 
+				    sec.ena = p['ena']
+				    # potassium reversal potential
+				    sec.ek = p['ek']		
+
+				    # mechanisms that vary with distance from soma
+				    # loop over segments
+				    for seg_i,seg in enumerate(sec):
+				    	# distance from soma
+				    	seg_dist = h.distance(seg.x, sec=sec)
+				    	
+				    	# sodium
+				    	seg.gbar_na3 = p['gna'] + p['dgna']*seg_dist
+				    	# print seg_dist, seg.gbar_na3
+				    	
+				    	# h current
+				    	seg.ghdbar_hd = p['ghd']*(1+p['ghd_grad']*seg_dist/100)
+				    	
+				    	# A-type potassium
+				        if seg_dist > 100:	# distal
+				            seg.vhalfl_hd = p['vhalfl_dist']
+				            seg.gkabar_kad = p['KMULT']*(1+p['ka_grad']*seg_dist/100)
+				        else:	# proximal
+				            seg.vhalfl_hd = p['vhalfl_prox']
+				            seg.gkabar_kap = p['KMULTP']*(1+p['ka_grad']*seg_dist/100)
+
+				        # loop over synapse types
+				        for syn_key,syn in self.syns[tree_key].iteritems():
+				        	if syn_key == 'ampa':
+				        		syn[sec_i].append(h.Exp2Syn(sec(seg.x)))
+				        		syn[sec_i][seg_i].tau1 = p['tau1_ampa']
+				        		syn[sec_i][seg_i].tau2 = p['tau2_ampa']
+				        		syn[sec_i][seg_i].i = p['i_ampa']
+				        	elif syn_key == 'nmda':
+				        		syn[sec_i].append(h.Exp2SynNMDA(sec(seg.x)))
+				        		syn[sec_i][seg_i].tau1 = p['tau1_nmda']
+				        		syn[sec_i][seg_i].tau2 = p['tau2_nmda']
+				        	elif syn_key == 'clopath':
+				        		syn[sec_i].append(h.STDPSynCCNon(sec(seg.x)))
+
+
+
 # create cell
 class CellMigliore2005:
 	""" pyramidal neuron based on Migliore et al. 2005
@@ -28,6 +216,7 @@ class CellMigliore2005:
 		"""
 		# load cell geometry into hoc interpreter
 		h.load_file('geo5038804.hoc')  
+		# h.load_file('geoc62564.hoc')
 		# set discretization based on dlambda rule (set dlambda in hoc file) 
 		h.load_file('fixnseg.hoc')  	
 		# dictionary for storing geometry ['tree'][sec](seg location)
@@ -80,7 +269,7 @@ class CellMigliore2005:
 				# specific capacitance (uf/cm2)
 				sec.cm = p['Cm'] 			
 				# axial resistance (ohm cm) 		
-				sec.Ra = p['RaAx'] 
+				sec.Ra = p['RaAll'] 
 										
 
 
@@ -99,6 +288,7 @@ class CellMigliore2005:
 					sec.ena = p['ena']		
 					# potassium reversal potential 
 					sec.ek = p['ek']
+					sec.Ra = p['RaAx']
 					
 				# soma active biophysics
 				elif tree_key == 'soma':
@@ -155,9 +345,10 @@ class CellMigliore2005:
 				    	
 				    	# sodium
 				    	seg.gbar_na3 = p['gna'] + p['dgna']*seg_dist
+				    	# print seg_dist, seg.gbar_na3
 				    	
 				    	# h current
-				    	seg.ghdbar_hd = p['ghd']*(1+3*seg_dist/100)
+				    	seg.ghdbar_hd = p['ghd']*(1+p['ghd_grad']*seg_dist/100)
 				    	
 				    	# A-type potassium
 				        if seg_dist > 100:	# distal
@@ -172,7 +363,7 @@ class CellMigliore2005:
 				        	if syn_key == 'ampa':
 				        		syn[sec_i].append(h.Exp2Syn(sec(seg.x)))
 				        		syn[sec_i][seg_i].tau1 = p['tau1_ampa']
-				        		syn[sec_i][seg_i].tau2 = p['tau2_nmda']
+				        		syn[sec_i][seg_i].tau2 = p['tau2_ampa']
 				        		syn[sec_i][seg_i].i = p['i_ampa']
 				        	elif syn_key == 'nmda':
 				        		syn[sec_i].append(h.Exp2SynNMDA(sec(seg.x)))
@@ -180,6 +371,24 @@ class CellMigliore2005:
 				        		syn[sec_i][seg_i].tau2 = p['tau2_nmda']
 				        	elif syn_key == 'clopath':
 				        		syn[sec_i].append(h.STDPSynCCNon(sec(seg.x)))
+	
+	def measure_area(self, tree):
+		"""
+		given a tree measure the total area of all sections in the tree
+
+		tree is a list of sections (hoc objects)
+		"""
+		area_all = []
+		for sec_i, sec in enumerate(tree):
+			L = sec.L
+			a = sec.diam/2.
+			rL = sec.Ra
+			rm = 1/sec.g_pas
+			area = 2*np.pi*a*L
+			lam = np.sqrt(a*rm/(2*rL))
+			area_all.append(area)
+
+		return sum(area_all)
 
 class CellKim2015:
 	pass
@@ -218,8 +427,7 @@ class Syn_act:
 
 							# loop over stimulation bursts
 							for syn_stim_i,syn_stim in enumerate(stim):
-								self.nc[tree_key][syntype_key][sec_i][seg_i].append(
-									h.NetCon(syn_stim,syns[tree_key][syntype_key][sec][seg],0,0,p['w_list'][sec_i][seg_i]))
+								self.nc[tree_key][syntype_key][sec_i][seg_i].append( h.NetCon(syn_stim, syns[tree_key][syntype_key][sec][seg], 0, 0, p['w_list'][sec_i][seg_i]))
 
 # set procedure if called as a script
 if __name__ == "__main__":
