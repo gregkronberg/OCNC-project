@@ -238,10 +238,10 @@ class Experiment:
 			'data_folder':'Data/'+exp+'/',
 			'fig_folder':'png figures/'+exp+'/',
 
-			'L_basal' : 300.,
+			'L_basal' : 600.,
 			'L_soma' : 10.,
-			'L_apical_prox' : 300.,
-			'L_apical_dist' : 300.,
+			'L_apical_prox' : 600.,
+			'L_apical_dist' : 600.,
 			'diam_basal' : 2.,
 			'diam_soma' : 10.,
 			'diam_apical_prox' : 2.,
@@ -314,7 +314,7 @@ class Experiment:
 			'ehd' : -30.,					# h-current reversal potential (mV)
 			'vhalfl_prox' : -73.,			# activation threshold for proximal a-type potassium (mV)
 			'vhalfl_dist' : -81.,			# activation threshold for distal a-type potassium (mV)
-			'RaAll' : 15*150.,				# axial resistance, all compartments (ohm*cm)
+			'RaAll' : 150.,				# axial resistance, all compartments (ohm*cm)
 			'RaAx' : 50.,					# axial resistance, axon (ohm*cm)					
 			'RmAll' : 28000.,			# specific membrane resistance (ohm/cm2)
 			'Cm' : 1.,					# specific membrane capacitance (uf/cm2)

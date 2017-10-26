@@ -214,7 +214,7 @@ class Arguments:
 		"""
 		weights = np.arange(.005, .03, .005)
 		# weights = np.arange(.5, 1, .1)
-		weights = [.05]
+		weights = [.01]
 		self.kwargs = {
 		'exp' : 'exp_3', 
 		'tree' : 'apical_dist',
@@ -222,7 +222,7 @@ class Arguments:
 		'w_mean' : weights,#[.001],
 		'w_std' : [.002],
 		'w_rand' : False, 
-		'syn_frac' : .2
+		'syn_frac' : .5
 		}
 if __name__ =="__main__":
 	kwargs = Arguments('exp_3').kwargs
