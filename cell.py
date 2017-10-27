@@ -13,6 +13,8 @@ class PyramidalCell:
 	def __init__(self, p):
 		self.geometry(p)
 		self.mechanisms(p)
+		path_l = self.measure_length(self.geo)
+		print path_l
 
 	def geometry(self, p):
 		"""
@@ -94,6 +96,75 @@ class PyramidalCell:
 			
 		return area
 
+	def measure_length(self, geo):
+		# keep track of most recent section in each path [paths]
+		secs = [geo['soma'][0]]
+
+		# keep track of all sections in paths [paths][sections]
+		# does not include soma
+		paths=[[]]
+		# iterate over paths
+		for sec_i, sec in enumerate(secs):
+			
+			current_sec_ref = h.SectionRef(sec=sec)
+			current_children = current_sec_ref.child
+			# print sec.name(), len(current_children), sec_i
+			# print 'secs:', len(secs)
+			while len(current_children)>0:
+				# iterate over children 
+				for child_i, child in enumerate(current_children):
+					# print child.name()
+					# print sec_i
+					# print 'child:', child_i
+					# add first child to path
+					print paths
+					if child_i==0:
+						paths[sec_i].append(child)
+						# print 'secs:', len(secs)
+						sec = child
+						# print 'secs:' ,len(secs)
+					
+					# if multiple children
+					if child_i > 0:
+						# create new path to copy when tree splits
+						new_path=[]
+						for section in paths[sec_i]:
+							new_path.append(section)
+
+						# copy current path in list
+						# if split occurs at soma, do not copy previous list
+						if h.SectionRef(sec=child).parent.name()!='soma':
+							paths.append(new_path)
+						else:
+							# create new list beginning with soma
+							paths.append([])
+						# make 
+						secs.append(child)
+						# add corresponding child to new path 
+						paths[sec_i + child_i].append(child)
+						# print len(paths), len(secs)
+				current_sec_ref = h.SectionRef(sec=sec)
+				current_children = current_sec_ref.child
+
+
+		
+		path_l = []
+		sec_name = []
+		for path_i, path in enumerate(paths):
+			path_l.append([])
+			sec_name.append([])
+			for sec_i, sec in enumerate(path):
+				L = sec.L
+				a = sec.diam/2
+				rm = 1/sec.g_pas
+				rL = sec.Ra
+				lam = np.sqrt( (a*rm) / (2*rL) )
+				e_length = L/lam
+				path_l[path_i].append(e_length)
+				sec_name[path_i].append(sec.name())
+
+		return {'path_l': path_l,
+		'sec_name':sec_name}
 
 	def rotate(self, theta):
 		"""Rotate the cell about the Z axis.
@@ -389,6 +460,8 @@ class CellMigliore2005:
 			area_all.append(area)
 
 		return sum(area_all)
+
+
 
 class CellKim2015:
 	pass
