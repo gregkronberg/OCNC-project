@@ -24,7 +24,7 @@ class Experiment:
 	""" Impliment experimental procedures.  Paramters/arguments can be set using the Arguments class
 	"""
 	def __init__(self, **kwargs):
-		experiment = getattr(self, kwargs['exp'])
+		experiment = getattr(self, kwargs['experiment'])
 
 		experiment(**kwargs) 
 
@@ -140,7 +140,7 @@ class Experiment:
 				# syn_frac = np.random.normal(loc=.1, scale=.1) # chosen from gaussian
 				
 				# load rest of parameters from parameter module
-				p = param.Experiment(exp=exp, tree=tree, w_mean=w, w_std=w_std, w_rand=w_rand, syn_frac=syn_frac).p
+				p = param.Experiment(experiment=exp, tree=tree, w_mean=w, w_std=w_std, w_rand=w_rand, syn_frac=syn_frac).p
 				
 				# store trial number
 				p['trial']=tri
@@ -165,6 +165,50 @@ class Experiment:
 
 		self.p = p
 
+	def exp_4(self, **kwargs):
+		exp = 'exp_4'
+		tree = kwargs['tree']
+		trials = kwargs['trials']
+		w_mean = kwargs['w_mean']
+		w_std = kwargs['w_std']
+		w_rand = kwargs['w_rand']
+		syn_frac = kwargs['syn_frac']
+
+		# loop over trials
+		for tri in range(trials):
+			for gh_i, gh in enumerate(kwargs['conductance_range']):
+				for gka_i, gka in enumerate(kwargs['conductance_range']):
+					
+					# load rest of parameters from parameter module
+					p = param.Experiment(**kwargs).p
+					
+					# set Ih and Ka conductance parameters
+					p['ghd'] = gh*0.00005
+					p['KMULT'] =  gka*0.03
+					p['KMULTP'] =  gka*0.03
+
+					# store trial number
+					p['trial']=tri
+					
+					# create unique identifier for each trial
+					p['trial_id'] = str(uuid.uuid4())
+					
+					# start timer
+					start = time.time() 
+					
+					# run simulation
+					sim = run.Run(p)	
+
+					# end timer
+					end = time.time() 
+
+					# print trial and simulation time
+					print 'trial'+ str(tri) + ' duration:' + str(end -start) 
+					
+					# save data for eahc trial
+					run.save_data(sim.data)
+
+		self.p = p
 
 class Arguments:
 	"""
@@ -189,9 +233,7 @@ class Arguments:
 		'w_rand' : False, 
 		'syn_frac' : .05
 		}
-
-
-
+		
 	def exp_2(self):
 		""" choose a specific set of synapses, iterate over increasing synaptic weights, measure resulting LTP and dendritic spike initiation
 		"""
@@ -214,19 +256,38 @@ class Arguments:
 		"""
 		weights = np.arange(.005, .03, .005)
 		# weights = np.arange(.5, 1, .1)
-		weights = [.01]
+		weights = [0]
 		self.kwargs = {
-		'exp' : 'exp_3', 
+		'experiment' : 'exp_3', 
 		'tree' : 'apical_dist',
 		'trials' : 1,
 		'w_mean' : weights,#[.001],
 		'w_std' : [.002],
 		'w_rand' : False, 
-		'syn_frac' : .5
+		'syn_frac' : .1
 		}
+
+	def exp_4(self):
+		""" choose a specific set of synapses, iterate over increasing synaptic weights, measure resulting LTP and dendritic spike initiation
+		"""
+		# weights = np.arange(.005, .03, .005)
+		# weights = np.arange(.5, 1, .1)
+		weights = [0]
+		self.kwargs = {
+		'conductance_range' : np.arange(.1, 2, .1),
+		'experiment' : 'exp_4', 
+		'tree' : 'apical_dist',
+		'trials' : 1,
+		'w_mean' : weights,#[.001],
+		'w_std' : [.002],
+		'w_rand' : False, 
+		'syn_frac' : 0
+		}
+
 if __name__ =="__main__":
-	kwargs = Arguments('exp_3').kwargs
+	kwargs = Arguments('exp_4').kwargs
 	x = Experiment(**kwargs)
-	plots = analysis.Voltage()
-	plots.plot_all(x.p)
+	analysis.Experiment(experiment='exp_4')
+	# plots = analysis.Voltage()
+	# plots.plot_all(x.p)
 	# analysis.Experiment(exp='exp_3')

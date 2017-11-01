@@ -465,7 +465,7 @@ class Experiment:
 	"""analyses for individual experiments
 	"""
 	def __init__(self, **kwargs):
-		experiment = getattr(self, kwargs['exp'])
+		experiment = getattr(self, kwargs['experiment'])
 
 		experiment(**kwargs) 
 
@@ -617,7 +617,6 @@ class Experiment:
 						# store distance from soma
 						# store in ['cell identifier'][tree][section][segment]['varaiable']
 	
-
 	def exp_2(self, **kwargs):
 		npol = 3 
 		data_folder = 'Data/'+kwargs['exp']+'/'
@@ -649,6 +648,75 @@ class Experiment:
 		fig.savefig(data_folder+'fig_dw'+'.png', dpi=250)
 		plt.close(fig)
 
+	def exp_4(self, **kwargs):
+		""" plot asymmetric voltage change at soma as a function of Ih and Ka conductances
+		"""
+		npol = 3 
+		data_folder = 'Data/'+kwargs['experiment']+'/'
+		g_range = run_control.Arguments('exp_4').kwargs['conductance_range']
+		files = os.listdir(data_folder)
+		asymmetry = np.zeros([len(g_range), len(g_range)])
+		cathodal = np.zeros([len(g_range), len(g_range)])
+		anodal = np.zeros([len(g_range), len(g_range)])
+		g_h = g_range*0.00005 #np.zeros([1, len(files)])
+		g_ka = g_range*0.03 #np.zeros([1, len(files)])
+		trial_id = []
+		syn_weight = np.zeros([1,len(files)])
+		for data_file_i, data_file in enumerate(files):
+			# check for proper data file format
+			if 'data' in data_file:
+				with open(data_folder+data_file, 'rb') as pkl_file:
+					data = pickle.load(pkl_file)
+				p = data['p']
+				# check if file has already been processed
+				# if p['trial_id'] not in trial_id
+				trial_id.append(p['trial_id'])
+				
+				gh_i = [i for i, val in enumerate(g_h) if p['ghd']==val]
+				ka_i = [i for i, val in enumerate(g_ka) if p['KMULT']==val]
+				
+
+				control = data['soma_v'][1][0][0][-1]
+				cathodal[gh_i, ka_i] = data['soma_v'][0][0][0][-1] - control
+				anodal[gh_i, ka_i] = data['soma_v'][2][0][0][-1] - control
+				asymmetry[gh_i, ka_i] = anodal[gh_i, ka_i] + cathodal[gh_i, ka_i] 
+
+				# asym[0,data_file_i] = asymmetry
+				# g_h[0,data_file_i] = p['ghd']
+				# g_ka[0,data_file_i] = p['KMULT']
+		print cathodal.shape
+		fig1 = plt.figure(1)
+		plt.imshow(cathodal)
+		plt.colorbar()
+		plt.xlabel('Ih conductance')
+		plt.ylabel('Ka conductance')
+		plt.title('Cathodal Membrane polarization (mV)')
+		fig1.savefig(data_folder+'cathodal_conductance_parameters'+'.png', dpi=250)
+		plt.close(fig1)
+
+		fig2 = plt.figure(2)
+		plt.imshow(anodal)
+		plt.colorbar()
+		plt.xlabel('Ih conductance')
+		plt.ylabel('Ka conductance')
+		plt.title('Anodal Membrane polarization (mV)')
+		fig2.savefig(data_folder+'anodal_conductance_parameters'+'.png', dpi=250)
+		plt.close(fig2)
+
+		fig3 = plt.figure(3)
+		plt.imshow(asymmetry)
+		plt.colorbar()
+		plt.xlabel('Ih conductance')
+		plt.ylabel('Ka conductance')
+		plt.title('Asymmetry, anodal + cathodal polarization (mV)')
+		fig3.savefig(data_folder+'asymmetry_conductance_parameters'+'.png', dpi=250)
+		plt.close(fig3)
+
+
+
+
+
+
 
 if __name__ =="__main__":
 	# Weights(param.exp_3().p)
@@ -656,7 +724,7 @@ if __name__ =="__main__":
 	# kwargs = run_control.Arguments('exp_2').kwargs
 	# plots = Voltage()
 	# plots.plot_all(param.Experiment(**kwargs).p)
-	Experiment(exp='exp_1')
+	Experiment(experiment='exp_4')
 
 
 
