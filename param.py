@@ -15,9 +15,10 @@ class Default(object):
 		exp='default'
 		self.p = {
 			'experiment' : exp,
+			'cell' : [], 
 			'data_folder' : 'Data/'+exp+'/',
 			'fig_folder' : 'png figures/'+exp+'/',
-			# equivalent cylinder parameters determined by cell.DendriteTransform
+			# equivalent cylinder parameters determined by cell.DendriteTransform of Migliore cell geo5038804.hoc
 			'L_basal' : 1600.,
 			'L_soma' : 7.5,
 			'L_apical_prox' : 1000.,
@@ -30,6 +31,7 @@ class Default(object):
 			'nsec_soma' : 1,
 			'nsec_apical_prox' : 1,
 			'nsec_apical_dist' : 1,
+			'syn_types' : ['ampa', 'nmda', 'clopath'],
 
 
 			'syn_frac':[],
@@ -50,11 +52,12 @@ class Default(object):
 			'field_color':['b','k','r'],
 			'dt' : .025,
 			'warmup': 30,
-			'tstop' : 70,#5*1000/5 + 30 + 5*1000/100 +30
+			'tstop' : 80,#5*1000/5 + 30 + 5*1000/100 +30
 			'bursts':1,
 			'pulses':4,
 			'pulse_freq':100,
 			'burst_freq':5,
+			'noise' : 0,
 
 			# clopath synapse parameters
 			'clopath_delay_steps': 1,
@@ -81,15 +84,15 @@ class Default(object):
 			# conversion 10*(nS/um2) = (mho/cm2)
 			# *** units in paper are a typo, values are already reported in (mho/cm2) ***
 			'Vrest' : -65.,				# resting potential (mV)
-			'gna' : 0,#.025,				# peak sodium conductance (mho/cm2)
+			'gna' : 0,# .025,				# peak sodium conductance (mho/cm2)
 			'dgna' : 0,#-.000025,			# change in sodium conductance with distance (ohm/cm2/um) from Kim 2015
 			'ena' : 55.,					# sodium reversal potential (mV)
 			'AXONM' : 5.,				# multiplicative factor for axonal conductance
 			'gkdr' : 0.01,				# delayed rectifier potassium peak conductance (mho/cm2)
 			'ek' : -90,					# potassium reversal potential
 			'celsius' : 35.0,  				# temperature (degrees C)
-			'KMULT' :  0.03,			# multiplicative factor for distal A-type potassium conductances
-			'KMULTP' : 0.03,				# multiplicative factor for proximal A-type potassium conductances
+			'KMULT' :  0*0.03,			# multiplicative factor for distal A-type potassium conductances
+			'KMULTP' : 0*0.03,				# multiplicative factor for proximal A-type potassium conductances
 			'ghd' : 0.00005,			# peak h-current conductance (mho/cm2)
 			'ehd' : -30.,					# h-current reversal potential (mV)
 			'vhalfl_prox' : -73.,			# activation threshold for proximal a-type potassium (mV)
@@ -98,8 +101,8 @@ class Default(object):
 			'RaAx' : 50.,					# axial resistance, axon (ohm*cm)					
 			'RmAll' : 28000.,			# specific membrane resistance (ohm/cm2)
 			'Cm' : 1.,					# specific membrane capacitance (uf/cm2)
-			'ka_grad' : 0.5,#1.,				# slope of a-type potassium channel gradient with distance from soma 
-			'ghd_grad' : 1.5,#3.,				# slope of a-type potassium channel gradient with distance from soma 
+			'ka_grad' : 0.2,#1.,				# slope of a-type potassium channel gradient with distance from soma 
+			'ghd_grad' : .75,#3.,				# slope of a-type potassium channel gradient with distance from soma 
 			}
 
 	def choose_seg_rand(self, syn_list, syn_frac):
@@ -299,6 +302,61 @@ class Experiment(Default):
 		self.set_weights(seg_idx=self.p['seg_idx'], w_mean=self.p['w_mean'], w_std=self.p['w_std'], w_rand=self.p['w_rand'])
 
 		print self.p['seg_idx']
+
+	def exp_5(self, **kwargs):
+		""" vary gradient of Ka and Ih
+
+		measure steady state membrane polarization in the absence of synaptic inputs
+	
+		"""
+		# update parameters
+		for key, val in kwargs.iteritems():
+			self.p[key] = val
+
+		self.p['data_folder'] = 'Data/'+self.p['experiment']+'/'
+		self.p['fig_folder'] =  'png figures/'+self.p['experiment']+'/'
+
+		# load cell
+		self.cell = cell.PyramidalCell(self.p)
+		self.seg_distance(self.cell)
+		# randomly choose active segments 
+
+		self.choose_seg_rand(syn_list=self.cell.syns[self.p['tree']]['ampa'], syn_frac=self.p['syn_frac'])
+		
+		# set weights for active segments
+		self.set_weights(seg_idx=self.p['seg_idx'], w_mean=self.p['w_mean'], w_std=self.p['w_std'], w_rand=self.p['w_rand'])
+
+		print self.p['seg_idx']
+
+	def exp_6(self, **kwargs):
+		""" vary gradient of Ka and Ih
+
+		measure peak membrane depolarization in response to synaptic input
+	
+		"""
+		# update parameters
+		for key, val in kwargs.iteritems():
+			self.p[key] = val
+
+		self.p['data_folder'] = 'Data/'+self.p['experiment']+'/'
+		self.p['fig_folder'] =  'png figures/'+self.p['experiment']+'/'
+
+		# load cell
+		self.p['cell'] = cell.PyramidalCell(self.p)
+		self.seg_distance(self.p['cell'])
+		# randomly choose active segments 
+
+		self.choose_seg_manual(sec_list=self.p['sec_list'], seg_list=self.p['seg_list'])
+		
+		# set weights for active segments
+		self.set_weights(seg_idx=self.p['seg_idx'], w_mean=self.p['w_mean'], w_std=self.p['w_std'], w_rand=self.p['w_rand'])
+
+		print self.p['seg_idx']
+		print self.p['w_list']
+		print self.p['pulses']
+
+		# delete created cell
+		# self.cell=None
 
 
 # set procedure if called as a script

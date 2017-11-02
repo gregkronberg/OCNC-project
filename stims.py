@@ -147,12 +147,13 @@ class Bipolar:
     def __init__(self):
         pass
 
-    def tbs(self, bursts=1, pulses=4, pulse_freq=100, burst_freq=5, warmup=30):
+    def tbs(self, bursts=1, pulses=4, pulse_freq=100, burst_freq=5, warmup=30, noise=0):
+        fs = 1000. # convert time to ms
         self.warmup = warmup   # warm up time (ms)
         self.stim  = [] # list of stim objects
         for a in range(bursts): # create new object for each burst
             self.stim.append(h.NetStim())
-            self.stim[a].start = self.warmup + a*1000/burst_freq # start of burst
-            self.stim[a].interval = 1000/pulse_freq
-            self.stim[a].noise  = 0 
+            self.stim[a].start = self.warmup + a*fs/burst_freq # start of burst
+            self.stim[a].interval = fs/pulse_freq
+            self.stim[a].noise  = noise 
             self.stim[a].number = pulses

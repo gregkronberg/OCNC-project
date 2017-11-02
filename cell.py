@@ -46,7 +46,6 @@ class PyramidalCell:
 				# diameter basd on area of full morphology
 				# diam = areas[tree_i]/(np.pi*p['L_'+tree])
 				diam = p['diam_'+tree] 
-				print diam
 				# p['diam_'+tree] = diam
 				# create 3d specification, with cell arranged vertically
 				h.pt3dadd(0, 0, 0, diam, sec=self.geo[tree][sec_i])

@@ -30,14 +30,14 @@ class Run():
 
 		# create cell
 		# self.cell1 = cell.CellMigliore2005(p)
-		self.cell1 = cell.PyramidalCell(p)
+		self.cell1 = cell.PyramidalCell(p) #p['cell']
 		self.update_clopath( p, syns=self.cell1.syns[p['tree']]['clopath'])
 		self.activate_synapses(p)
 		self.recording_vectors(p)
 		self.run_sims(p)
 
 	# update clopath parameters
-	def update_clopath(self,p,syns):
+	def update_clopath(self, p, syns):
 		# iterate over parameters
 		for parameter_key,parameter in p.iteritems():
 			# if it is a clopath learning rule parameter
@@ -151,6 +151,8 @@ class Run():
 
 def save_data(data):	# save data
 	p = data['p']
+	# delete cell hoc object (can't be pickled)
+	p['cell']=[]
 	# check if folder exists with experiment name
 	if os.path.isdir(p['data_folder']) is False:
 		os.mkdir(p['data_folder'])

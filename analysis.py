@@ -379,9 +379,11 @@ class Voltage():
 		for data_file in os.listdir(p['data_folder']):
 			# check for proper data file format
 			if 'data' in data_file:
+				print data_file
 				# open data file
 				with open(p['data_folder']+data_file, 'rb') as pkl_file:
 					data = pickle.load(pkl_file)
+					print 'file loaded'
 				# update specific experiment parameters
 				p_data = data['p']
 				# plot voltage traces in specified segments (automatically saved to same folder)
@@ -651,16 +653,32 @@ class Experiment:
 	def exp_4(self, **kwargs):
 		""" plot asymmetric voltage change at soma as a function of Ih and Ka conductances
 		"""
-		npol = 3 
+		# identify data folder
 		data_folder = 'Data/'+kwargs['experiment']+'/'
-		g_range = run_control.Arguments('exp_4').kwargs['conductance_range']
+
+		# list files
 		files = os.listdir(data_folder)
+
+		# if group variable in folder, load variable
+		if 'trial_id' in files:
+			
+			with open(data_folder+'trial_id', 'rb') as pkl_file:
+					trial_id = pickle.load(pkl_file)
+		# otherwise create variable
+		else:
+			trial_id = []
+
+		npol = 3 
+		
+		g_range = run_control.Arguments('exp_4').kwargs['conductance_range']
+		
 		asymmetry = np.zeros([len(g_range), len(g_range)])
 		cathodal = np.zeros([len(g_range), len(g_range)])
 		anodal = np.zeros([len(g_range), len(g_range)])
+		control = np.zeros([len(g_range), len(g_range)])
 		g_h = g_range*0.00005 #np.zeros([1, len(files)])
 		g_ka = g_range*0.03 #np.zeros([1, len(files)])
-		trial_id = []
+
 		syn_weight = np.zeros([1,len(files)])
 		for data_file_i, data_file in enumerate(files):
 			# check for proper data file format
@@ -668,18 +686,31 @@ class Experiment:
 				with open(data_folder+data_file, 'rb') as pkl_file:
 					data = pickle.load(pkl_file)
 				p = data['p']
-				# check if file has already been processed
-				# if p['trial_id'] not in trial_id
-				trial_id.append(p['trial_id'])
 				
+				# check if file has already been processed
+				if p['trial_id'] not in trial_id:
+					trial_id.append(p['trial_id'])
+
+					# retrieve conductance parameters
+
+					# add to parameter vector
+
+					# sort parameter vector
+
+				# add polarization to matrix, based according to index in paramter vectors
 				gh_i = [i for i, val in enumerate(g_h) if p['ghd']==val]
 				ka_i = [i for i, val in enumerate(g_ka) if p['KMULT']==val]
 				
 
-				control = data['soma_v'][1][0][0][-1]
-				cathodal[gh_i, ka_i] = data['soma_v'][0][0][0][-1] - control
-				anodal[gh_i, ka_i] = data['soma_v'][2][0][0][-1] - control
+				control[gh_i, ka_i] = data['soma_v'][1][0][0][-1]
+				cathodal[gh_i, ka_i] = data['soma_v'][0][0][0][-1] - control[gh_i, ka_i]
+				anodal[gh_i, ka_i] = data['soma_v'][2][0][0][-1] - control[gh_i, ka_i]
 				asymmetry[gh_i, ka_i] = anodal[gh_i, ka_i] + cathodal[gh_i, ka_i] 
+
+				# control[gh_i, ka_i] = data['apical_dist_v'][1][0][0][-1]
+				# cathodal[gh_i, ka_i] = data['apical_dist_v'][0][0][0][-1] - control[gh_i, ka_i]
+				# anodal[gh_i, ka_i] = data['apical_dist_v'][2][0][0][-1] - control[gh_i, ka_i]
+				# asymmetry[gh_i, ka_i] = anodal[gh_i, ka_i] + cathodal[gh_i, ka_i]
 
 				# asym[0,data_file_i] = asymmetry
 				# g_h[0,data_file_i] = p['ghd']
@@ -688,8 +719,10 @@ class Experiment:
 		fig1 = plt.figure(1)
 		plt.imshow(cathodal)
 		plt.colorbar()
-		plt.xlabel('Ih conductance')
-		plt.ylabel('Ka conductance')
+		plt.ylabel('Ih conductance')
+		plt.xlabel('Ka conductance')
+		plt.yticks(range(len(g_h)), g_h)
+		plt.xticks(range(len(g_ka)), g_ka)
 		plt.title('Cathodal Membrane polarization (mV)')
 		fig1.savefig(data_folder+'cathodal_conductance_parameters'+'.png', dpi=250)
 		plt.close(fig1)
@@ -697,8 +730,10 @@ class Experiment:
 		fig2 = plt.figure(2)
 		plt.imshow(anodal)
 		plt.colorbar()
-		plt.xlabel('Ih conductance')
-		plt.ylabel('Ka conductance')
+		plt.ylabel('Ih conductance')
+		plt.xlabel('Ka conductance')
+		plt.yticks(range(len(g_h)), g_h)
+		plt.xticks(range(len(g_ka)), g_ka)
 		plt.title('Anodal Membrane polarization (mV)')
 		fig2.savefig(data_folder+'anodal_conductance_parameters'+'.png', dpi=250)
 		plt.close(fig2)
@@ -706,11 +741,251 @@ class Experiment:
 		fig3 = plt.figure(3)
 		plt.imshow(asymmetry)
 		plt.colorbar()
-		plt.xlabel('Ih conductance')
-		plt.ylabel('Ka conductance')
+		plt.ylabel('Ih conductance')
+		plt.xlabel('Ka conductance')
+		plt.yticks(range(len(g_h)), g_h)
+		plt.xticks(range(len(g_ka)), g_ka)
 		plt.title('Asymmetry, anodal + cathodal polarization (mV)')
 		fig3.savefig(data_folder+'asymmetry_conductance_parameters'+'.png', dpi=250)
 		plt.close(fig3)
+
+		fig4 = plt.figure(4)
+		plt.imshow(control)
+		plt.colorbar()
+		plt.ylabel('Ih conductance')
+		plt.xlabel('Ka conductance')
+		plt.yticks(range(len(g_h)), g_h)
+		plt.xticks(range(len(g_ka)), g_ka)
+		plt.title('Membrane potential (mV)')
+		fig4.savefig(data_folder+'control_conductance_parameters'+'.png', dpi=250)
+		plt.close(fig4)
+
+	def exp_5(self, **kwargs):
+		""" plot asymmetric voltage change at soma as a function of Ih and Ka conductances
+		"""
+		# identify data folder
+		data_folder = 'Data/'+kwargs['experiment']+'/'
+
+		# list files
+		files = os.listdir(data_folder)
+
+		# if group variable in folder, load variable
+		if 'trial_id' in files:
+			
+			with open(data_folder+'trial_id', 'rb') as pkl_file:
+					trial_id = pickle.load(pkl_file)
+		# otherwise create variable
+		else:
+			trial_id = []
+		
+		# range of parameters
+		grad_range = run_control.Arguments('exp_5').kwargs['grad_range']
+		
+		# preallocate 
+		asymmetry = np.zeros([len(grad_range), len(grad_range)])
+		cathodal = np.zeros([len(grad_range), len(grad_range)])
+		anodal = np.zeros([len(grad_range), len(grad_range)])
+		control = np.zeros([len(grad_range), len(grad_range)])
+		
+		# gradient parameter vectors
+		grad_h = grad_range*3. #np.zeros([1, len(files)])
+		grad_ka = grad_range*1. #np.zeros([1, len(files)])
+
+		for data_file_i, data_file in enumerate(files):
+			# check for proper data file format
+			if 'data' in data_file:
+				with open(data_folder+data_file, 'rb') as pkl_file:
+					data = pickle.load(pkl_file)
+				p = data['p']
+				
+				# check if file has already been processed
+				if p['trial_id'] not in trial_id:
+					trial_id.append(p['trial_id'])
+
+					# retrieve conductance parameters
+
+					# add to parameter vector
+
+					# sort parameter vector
+
+					# add polarization to matrix, based according to index in paramter vectors
+				gh_i = [i for i, val in enumerate(grad_h) if p['ghd_grad']==val]
+				ka_i = [i for i, val in enumerate(grad_ka) if p['ka_grad']==val]
+				
+				# soma
+				# control[gh_i, ka_i] = data['soma_v'][1][0][0][-1]
+				# cathodal[gh_i, ka_i] = data['soma_v'][0][0][0][-1] - control[gh_i, ka_i]
+				# anodal[gh_i, ka_i] = data['soma_v'][2][0][0][-1] - control[gh_i, ka_i]
+				# asymmetry[gh_i, ka_i] = anodal[gh_i, ka_i] + cathodal[gh_i, ka_i] 
+
+				# distal apical
+				control[gh_i, ka_i] = data['apical_dist_v'][1][0][0][-1]
+				cathodal[gh_i, ka_i] = data['apical_dist_v'][0][0][0][-1] - control[gh_i, ka_i]
+				anodal[gh_i, ka_i] = data['apical_dist_v'][2][0][0][-1] - control[gh_i, ka_i]
+				asymmetry[gh_i, ka_i] = anodal[gh_i, ka_i] + cathodal[gh_i, ka_i] 
+
+		print cathodal.shape
+		fig1 = plt.figure(1)
+		plt.imshow(cathodal)
+		plt.colorbar()
+		plt.ylabel('Ih gradient')
+		plt.xlabel('Ka gradient')
+		plt.yticks(range(len(grad_h)), grad_h)
+		plt.xticks(range(len(grad_ka)), grad_ka)
+		plt.title('Cathodal Membrane polarization (mV)')
+		fig1.savefig(data_folder+'cathodal_gradient_parameters'+'.png', dpi=250)
+		plt.close(fig1)
+
+		fig2 = plt.figure(2)
+		plt.imshow(anodal)
+		plt.colorbar()
+		plt.ylabel('Ih gradient')
+		plt.xlabel('Ka gradient')
+		plt.yticks(range(len(grad_h)), grad_h)
+		plt.xticks(range(len(grad_ka)), grad_ka)
+		plt.title('Anodal Membrane polarization (mV)')
+		fig2.savefig(data_folder+'anodal_gradient_parameters'+'.png', dpi=250)
+		plt.close(fig2)
+
+		fig3 = plt.figure(3)
+		plt.imshow(asymmetry)
+		plt.colorbar()
+		plt.ylabel('Ih gradient')
+		plt.xlabel('Ka gradient')
+		plt.yticks(range(len(grad_h)), grad_h)
+		plt.xticks(range(len(grad_ka)), grad_ka)
+		plt.title('Asymmetry, anodal + cathodal polarization (mV)')
+		fig3.savefig(data_folder+'asymmetry_gradient_parameters'+'.png', dpi=250)
+		plt.close(fig3)
+
+		fig4 = plt.figure(4)
+		plt.imshow(control)
+		plt.colorbar()
+		plt.ylabel('Ih gradient')
+		plt.xlabel('Ka gradient')
+		plt.yticks(range(len(grad_h)), grad_h)
+		plt.xticks(range(len(grad_ka)), grad_ka)
+		plt.title('Membrane potential (mV)')
+		fig4.savefig(data_folder+'control_gradient_parameters'+'.png', dpi=250)
+		plt.close(fig4)
+
+	def exp_6(self, **kwargs):
+		""" plot asymmetric voltage change at soma as a function of Ih and Ka conductances
+		"""
+		# identify data folder
+		data_folder = 'Data/'+kwargs['experiment']+'/'
+
+		# list files
+		files = os.listdir(data_folder)
+
+		# if group variable in folder, load variable
+		if 'trial_id' in files:
+			
+			with open(data_folder+'trial_id', 'rb') as pkl_file:
+					trial_id = pickle.load(pkl_file)
+		# otherwise create variable
+		else:
+			trial_id = []
+
+		npol = 3 
+		
+		g_range = run_control.Arguments('exp_6').kwargs['conductance_range']
+		
+		asymmetry = np.zeros([len(g_range), len(g_range)])
+		cathodal = np.zeros([len(g_range), len(g_range)])
+		anodal = np.zeros([len(g_range), len(g_range)])
+		control = np.zeros([len(g_range), len(g_range)])
+		g_h = g_range*0.00005 #np.zeros([1, len(files)])
+		g_ka = g_range*0.03 #np.zeros([1, len(files)])
+
+		syn_weight = np.zeros([1,len(files)])
+		for data_file_i, data_file in enumerate(files):
+			# check for proper data file format
+			if 'data' in data_file:
+				print data_file
+				with open(data_folder+data_file, 'rb') as pkl_file:
+					data = pickle.load(pkl_file)
+				p = data['p']
+				
+				# check if file has already been processed
+				if p['trial_id'] not in trial_id:
+					trial_id.append(p['trial_id'])
+
+					# retrieve conductance parameters
+
+					# add to parameter vector
+
+					# sort parameter vector
+
+				# add polarization to matrix, based according to index in paramter vectors
+				gh_i = [i for i, val in enumerate(g_h) if p['ghd']==val]
+				ka_i = [i for i, val in enumerate(g_ka) if p['KMULT']==val]
+				
+
+				control[gh_i, ka_i] = np.amax(data['soma_v'][1][0][0][(30*40):])
+				print control[gh_i, ka_i]
+				cathodal[gh_i, ka_i] = np.amax(data['soma_v'][0][0][0][(30*40):]) - control[gh_i, ka_i]
+				anodal[gh_i, ka_i] = np.amax(data['soma_v'][2][0][0][(30*40):]) - control[gh_i, ka_i]
+				asymmetry[gh_i, ka_i] = anodal[gh_i, ka_i] + cathodal[gh_i, ka_i] 
+
+				# control[gh_i, ka_i] = np.amax(data['apical_dist_v'][1][0][-1][(30*40):])
+				# cathodal[gh_i, ka_i] = np.amax(data['apical_dist_v'][0][0][-1][(30*40):]) - control[gh_i, ka_i]
+				# anodal[gh_i, ka_i] = np.amax(data['apical_dist_v'][2][0][-1][(30*40):]) - control[gh_i, ka_i]
+				# asymmetry[gh_i, ka_i] = anodal[gh_i, ka_i] + cathodal[gh_i, ka_i]
+
+				# control[gh_i, ka_i] = np.amax(data['apical_prox_v'][1][0][-1][(30*40):])
+				# cathodal[gh_i, ka_i] = np.amax(data['apical_prox_v'][0][0][-1][(30*40):]) - control[gh_i, ka_i]
+				# anodal[gh_i, ka_i] = np.amax(data['apical_prox_v'][2][0][-1][(30*40):]) - control[gh_i, ka_i]
+				# asymmetry[gh_i, ka_i] = anodal[gh_i, ka_i] + cathodal[gh_i, ka_i]
+
+				# asym[0,data_file_i] = asymmetry
+				# g_h[0,data_file_i] = p['ghd']
+				# g_ka[0,data_file_i] = p['KMULT']
+		print cathodal.shape
+		fig1 = plt.figure(1)
+		plt.imshow(cathodal)
+		plt.colorbar()
+		plt.ylabel('Ih conductance')
+		plt.xlabel('Ka conductance')
+		plt.yticks(range(len(g_h)), g_h)
+		plt.xticks(range(len(g_ka)), g_ka)
+		plt.title('Cathodal change in EPSP peak (mV)')
+		fig1.savefig(data_folder+'cathodal_conductance_parameters'+'.png', dpi=250)
+		plt.close(fig1)
+
+		fig2 = plt.figure(2)
+		plt.imshow(anodal)
+		plt.colorbar()
+		plt.ylabel('Ih conductance')
+		plt.xlabel('Ka conductance')
+		plt.yticks(range(len(g_h)), g_h)
+		plt.xticks(range(len(g_ka)), g_ka)
+		plt.title('Anodal change in EPSP peak (mV)')
+		fig2.savefig(data_folder+'anodal_conductance_parameters'+'.png', dpi=250)
+		plt.close(fig2)
+
+		fig3 = plt.figure(3)
+		plt.imshow(asymmetry)
+		plt.colorbar()
+		plt.ylabel('Ih conductance')
+		plt.xlabel('Ka conductance')
+		plt.yticks(range(len(g_h)), g_h)
+		plt.xticks(range(len(g_ka)), g_ka)
+		plt.title('Asymmetry, anodal + cathodal effect (mV)')
+		fig3.savefig(data_folder+'asymmetry_conductance_parameters'+'.png', dpi=250)
+		plt.close(fig3)
+
+		fig4 = plt.figure(4)
+		plt.imshow(control)
+		plt.colorbar()
+		plt.ylabel('Ih conductance')
+		plt.xlabel('Ka conductance')
+		plt.yticks(range(len(g_h)), g_h)
+		plt.xticks(range(len(g_ka)), g_ka)
+		plt.title('Control peak EPSP (mV)')
+		fig4.savefig(data_folder+'control_conductance_parameters'+'.png', dpi=250)
+		plt.close(fig4)
+
 
 
 
@@ -721,10 +996,10 @@ class Experiment:
 if __name__ =="__main__":
 	# Weights(param.exp_3().p)
 	# # Spikes(param.exp_3().p)
-	# kwargs = run_control.Arguments('exp_2').kwargs
-	# plots = Voltage()
-	# plots.plot_all(param.Experiment(**kwargs).p)
-	Experiment(experiment='exp_4')
+	kwargs = run_control.Arguments('exp_6').kwargs
+	plots = Voltage()
+	plots.plot_all(param.Experiment(**kwargs).p)
+	Experiment(experiment='exp_6')
 
 
 
